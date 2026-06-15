@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulo 0 — Ruleta Base</title>
+<style>
+  :root {
+    --bg: #0e0f12;
+    --panel: #17191d;
+    --gold: #c9a14a;
+    --red: #b3261e;
+    --black: #1a1a1a;
+    --green: #1f7a3d;
+    --text: #f1ede4;
+    --muted: #8a8d93;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 30%, #1c1f25, var(--bg) 70%);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 8px 60px;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin: 8px 0 4px;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  /* ---- RULETA ---- */
+  .wheel-wrap {
+    position: relative;
+    width: min(96vw, 460px);
+    height: min(96vw, 460px);
+    margin: 30px 0 28px;
+  }
+
+  .wheel {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--panel);
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 0 6px #0a0b0d,
+      0 0 40px rgba(0,0,0,0.6) inset,
+      0 10px 40px rgba(0,0,0,0.5);
+  }
+
+  .pocket {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+  }
+
+  .pocket span {
+    position: absolute;
+    top: 4%;
+    left: 50%;
+    transform-origin: 50% calc(50vw + 4%);
+    width: 8.4%;
+    text-align: center;
+    font-weight: 700;
+    font-size: clamp(10px, 2.6vw, 14px);
+    color: var(--text);
+    padding-top: 4px;
+    line-height: 1;
+  }
+
+  .pocket.red span { color: #fff; background: var(--red); border-radius: 3px; padding: 4px 0; }
+  .pocket.black span { color: #fff; background: var(--black); border-radius: 3px; padding: 4px 0; }
+  .pocket.green span { color: #fff; background: var(--green); border-radius: 3px; padding: 4px 0; }
+
+  .ring {
+    position: absolute;
+    inset: 6%;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    opacity: 0.35;
+  }
+
+  .center-hole {
+    position: absolute;
+    inset: 32%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #2a2d33, #0c0d0f 75%);
+    box-shadow: 0 0 0 2px var(--gold) inset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .center-hole .label {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .center-hole .value {
+    font-size: clamp(2rem, 9vw, 3.2rem);
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .center-hole .value.red-num { color: var(--red); }
+  .center-hole .value.black-num { color: #e8e8e8; }
+  .center-hole .value.green-num { color: #3ddc84; }
+
+  /* indicador (apuntador) que se desplaza */
+  .pointer {
+    position: absolute;
+    top: -2%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform-origin: 50% calc(50vw + 2%);
+    transition: transform 1.1s cubic-bezier(.2,.8,.2,1);
+    z-index: 5;
+  }
+
+  .pointer::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -10px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 16px solid var(--gold);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+
+  /* ---- PANEL DE CONTROL ---- */
+  .panel {
+    width: min(96vw, 460px);
+    background: var(--panel);
+    border: 1px solid #2a2d33;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .panel label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-row input {
+    flex: 1;
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1.1rem;
+    padding: 12px 14px;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .input-row input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  .input-row button {
+    background: var(--gold);
+    color: #1a1208;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+
+  .input-row button:active { filter: brightness(0.9); }
+
+  .error {
+    margin-top: 10px;
+    color: #ff8a80;
+    font-size: 0.8rem;
+    min-height: 1.2em;
+  }
+
+  /* ---- HISTORIAL ---- */
+  .history {
+    margin-top: 18px;
+  }
+
+  .history label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .history-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .chip.red { background: var(--red); }
+  .chip.black { background: var(--black); border: 1px solid #333; }
+  .chip.green { background: var(--green); }
+
+  .chip.latest {
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+
+  .empty-msg {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ---- PUNTOS CARDINALES ---- */
+  .cardinals {
+    margin-top: 18px;
+  }
+
+  .cardinals label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .cardinal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .cardinal-card {
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .cardinal-card .cname {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .cardinal-card .cvalue {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .cardinal-card.red .cvalue { color: var(--red); }
+  .cardinal-card.black .cvalue { color: #e8e8e8; }
+  .cardinal-card.green .cvalue { color: #3ddc84; }
+
+  .cardinal-marker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 50%;
+    background: transparent;
+    transform-origin: 0 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .cardinal-marker .dot {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+  }
+
+  .cardinal-marker.p1 .dot { background: #ffffff; }
+  .cardinal-marker.p2 .dot { background: #4fc3f7; }
+  .cardinal-marker.p3 .dot { background: #ffca28; }
+  .cardinal-marker.p4 .dot { background: #ab47bc; }
+
+  .cardinal-marker .tag {
+    position: absolute;
+    top: -22px;
+    left: -10px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #fff;
+    background: rgba(0,0,0,0.6);
+    border-radius: 4px;
+    padding: 1px 4px;
+  }
+
+  /* ---- COORDENADAS ---- */
+  .coords {
+    margin-top: 18px;
+  }
+
+  .coords label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .coords-box {
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .coords-segment {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .coords-values {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .coord-pill {
+    background: #1a1d22;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--gold);
+    min-width: 56px;
+  }
+
+  .coords-sep {
+    color: var(--muted);
+    font-size: 1.2rem;
+  }
+
+  /* ---- OVERLAY DE BLOQUEO ---- */
+  #lockOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  #lockOverlay h2 {
+    color: var(--gold);
+    font-size: 1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  #lockOverlay input {
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1.2rem;
+    padding: 12px 14px;
+    text-align: center;
+    font-weight: 700;
+    width: 200px;
+  }
+
+  #lockOverlay button {
+    background: var(--gold);
+    color: #1a1208;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  #lockError {
+    color: #ff8a80;
+    font-size: 0.8rem;
+    min-height: 1.2em;
+  }
+
+  .undo-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .undo-row input {
+    flex: 1;
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .undo-row button {
+    background: transparent;
+    border: 1px solid #c9a14a;
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Recuadro dorado para identificar cada sección/jugada individual */
+  .section-box {
+    border: 1px solid #c9a14a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 14px;
+  }
+
+  /* ---- INFORME 12 GIROS ---- */
+  #reportTable td, #reportFreqTable td {
+    border: 1px solid #2f333a;
+    padding: 4px 1px;
+    min-width: 0;
+    font-size: 0.62rem;
+  }
+
+  #reportTable .cell-num {
+    font-weight: 800;
+    color: var(--red);
+  }
+
+  /* Columnas C5 y C10: punto de inicio de lectura manual */
+  #reportTable .col-highlight {
+    background: #f5d020 !important;
+    color: #000 !important;
+  }
+
+  /* Tabla de repetición: celdas con más de 3 repeticiones = alarma */
+  #reportFreqTable .freq-highlight {
+    background: #f5d020 !important;
+    color: #000 !important;
+    font-weight: 800;
+  }
+
+  /* ---- IMPRESIÓN/PDF DEL INFORME (media carta) ----
+     Solo aplica al usar Exportar PDF / imprimir desde un navegador real.
+     No afecta la vista normal en pantalla. */
+  @media print {
+    @page {
+      size: 5.5in 8.5in;
+      margin: 0.3in;
+    }
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea {
+      display: block !important;
+      position: absolute;
+      top: 0; left: 0; width: 100%;
+      background: #fff;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+  }
+
+  /* ---- MÓDULO MACHO · COORDENADAS QUEDADAS ---- */
+  .quedada-chip {
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    min-width: 52px;
+  }
+
+  .quedada-chip .digit {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  .quedada-chip .count {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .racha-chip {
+    flex: 1;
+    background: #0c0d0f;
+    border: 1px solid #2f333a;
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  .racha-chip.alert {
+    border-color: var(--red);
+    background: rgba(179,38,30,0.15);
+  }
+
+  .racha-chip .label {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .racha-chip .value {
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  .racha-chip.alert .value {
+    color: var(--red);
+  }
+
+</style>
+</head>
+<body>
+
+<div id="lockOverlay">
+  <h2>Sesión bloqueada</h2>
+  <input type="password" id="lockPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4">
+  <button id="lockBtn">Desbloquear</button>
+  <div id="lockError"></div>
+</div>
+
+<div style="width:min(96vw, 460px); display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+  <div style="flex:1;">
+    <h1 style="margin-bottom:4px;">Módulo 2 — Coordenadas de Desplazamiento</h1>
+    <p class="subtitle" style="margin-bottom:0;">Penúltimo número fija P1-P4 · el último número da las coordenadas</p>
+  </div>
+  <button id="logoutBtnHeader" style="background:transparent;border:1px solid #2f333a;color:var(--muted);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:6px;">Cerrar sesión</button>
+</div>
+
+<div class="wheel-wrap">
+  <div class="wheel">
+    <div class="pocket-layer" id="pocketLayer"></div>
+    <div class="ring"></div>
+    <div class="pointer" id="pointer"></div>
+    <div class="cardinal-marker p1" id="markerP1" style="display:none;"><span class="tag">P1</span><span class="dot"></span></div>
+    <div class="cardinal-marker p2" id="markerP2" style="display:none;"><span class="tag">P2</span><span class="dot"></span></div>
+    <div class="cardinal-marker p3" id="markerP3" style="display:none;"><span class="tag">P3</span><span class="dot"></span></div>
+    <div class="cardinal-marker p4" id="markerP4" style="display:none;"><span class="tag">P4</span><span class="dot"></span></div>
+    <div class="center-hole">
+      <span class="label">Último número</span>
+      <span class="value" id="centerValue">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <label for="numberInput">Cargar número ganador</label>
+  <div class="input-row">
+    <input type="text" id="numberInput" placeholder="0–36, 00" inputmode="numeric" maxlength="2">
+    <button id="loadBtn">Cargar</button>
+  </div>
+  <div class="error" id="errorMsg"></div>
+
+  <div class="input-row" style="margin-top:10px;">
+    <input type="password" id="resetPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
+    <button id="resetBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Reiniciar</button>
+  </div>
+
+  <div class="undo-row">
+    <input type="password" id="undoPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4">
+    <button id="undoBtn">Deshacer U/C</button>
+  </div>
+
+  <div class="undo-row">
+    <button id="exportDataBtn" style="flex:1;">Exportar trazabilidad</button>
+    <button id="importDataBtn" style="flex:1;">Importar trazabilidad</button>
+    <input type="file" id="importDataInput" accept="application/json" style="display:none;">
+  </div>
+
+  <div class="undo-row">
+    <button id="sessionHistoryBtn" style="flex:1; display:none;">Ver historial de la sesión</button>
+  </div>
+
+  <div class="history" id="sessionHistorySection" style="display:none;">
+    <label>Historial de la sesión</label>
+    <div class="history-list" id="historyList">
+      <span class="empty-msg">Aún no se ha cargado ningún número.</span>
+    </div>
+  </div>
+
+  <div class="undo-row">
+    <button id="cardinalsBtn" style="flex:1; display:none;">Ver puntos cardinales</button>
+  </div>
+
+  <div class="cardinals" id="cardinalsPanel" style="display:none;">
+    <label>Puntos cardinales (sobre el penúltimo número)</label>
+    <div class="cardinal-grid">
+      <div class="cardinal-card" id="cardP1">
+        <div class="cname">P1</div>
+        <div class="cvalue" id="cvalP1">—</div>
+      </div>
+      <div class="cardinal-card" id="cardP2">
+        <div class="cname">P2</div>
+        <div class="cvalue" id="cvalP2">—</div>
+      </div>
+      <div class="cardinal-card" id="cardP3">
+        <div class="cname">P3</div>
+        <div class="cvalue" id="cvalP3">—</div>
+      </div>
+      <div class="cardinal-card" id="cardP4">
+        <div class="cname">P4</div>
+        <div class="cvalue" id="cvalP4">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="coords" id="coordsPanel" style="display:none;">
+    <label>Coordenadas de desplazamiento</label>
+    <div class="coords-box">
+      <div class="coords-segment" id="coordsSegment">—</div>
+      <div class="coords-values">
+        <div class="coord-pill" id="coordA">—</div>
+        <div class="coords-sep">/</div>
+        <div class="coord-pill" id="coordB">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="undo-row">
+    <button id="playsHistoryBtn" style="flex:1; display:none;">Ver historial de jugadas</button>
+  </div>
+
+  <div class="history" id="playsHistorySection" style="display:none;">
+    <label>Historial de jugadas</label>
+    <div class="history-list" id="playsHistoryList"></div>
+  </div>
+
+  <div id="quedadasPanel" style="margin-top:14px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Módulo Macho · Coordenadas Quedadas
+    </label>
+
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;" id="quedadasBodega"></div>
+
+    <div class="section-box" id="machoManoBox" style="display:none;">
+      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Coordenadas Macho de la Mano</label>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;" id="machoManoContent"></div>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;" id="quedadasRachas"></div>
+
+    <div style="font-size:0.7rem; color:var(--muted);" id="quedadasDescanso"></div>
+
+    <div class="undo-row" id="tendenciaBtnRow" style="margin-top:10px; display:none;">
+      <button id="tendenciaBtn" style="flex:1;">Ver tendencia de descansos</button>
+    </div>
+    <div id="tendenciaContent" style="display:none; font-size:0.7rem; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px solid #2a2d33;"></div>
+  </div>
+
+  <div class="undo-row" style="margin-top:14px;">
+    <button id="reportBtn" style="flex:1;">Ver informe últimos 12 giros</button>
+    <button id="exportPdfBtn" title="Disponible cuando el proyecto esté en navegador/GitHub">Exportar PDF</button>
+  </div>
+
+  <div id="reportPanel" style="display:none; margin-top:14px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Últimos 12 giros · últimas 12 casillas · últimas 12 coordenadas
+    </label>
+    <div style="overflow-x:auto;">
+      <table id="reportTable" style="border-collapse:collapse;width:100%;table-layout:fixed;text-align:center;">
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section-box">
+      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+        Orden repetición coordenadas últimos 12 giros
+      </label>
+      <table id="reportFreqTable" style="border-collapse:collapse;width:100%;font-size:0.85rem;text-align:center;">
+        <tbody></tbody>
+      </table>
+      <div id="reportDescansoAlert" style="margin-top:8px; font-size:0.75rem;"></div>
+    </div>
+
+    <div class="section-box" id="reportNoVanMachoBox">
+      <div id="reportNoVanMacho" style="font-size:0.75rem;"></div>
+    </div>
+
+    <div class="section-box" id="reportFuertesBox">
+      <div id="reportFuertes" style="font-size:0.75rem;"></div>
+    </div>
+
+    <div class="section-box" id="reportC5C10IgualesBox">
+      <div id="reportC5C10Iguales" style="font-size:0.75rem;"></div>
+    </div>
+  </div>
+
+  <div id="liberacionPanel" class="section-box" style="display:none; margin-top:14px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Potencial Liberación
+    </label>
+    <div style="font-size:0.75rem;" id="liberacionContent"></div>
+  </div>
+
+  <div id="printArea" style="display:none;"></div>
+</div>
+
+<script>
+  // Secuencia oficial de la ruleta americana (38 casillas, en orden físico)
+  const SEQUENCE = [
+    "0","28","9","26","30","11","7","20","32","17","5","22","34","15","3",
+    "24","36","13","1","00","27","10","25","29","12","8","19","31","18",
+    "6","21","33","16","4","23","35","14","2"
+  ];
+
+  const RED_NUMBERS = new Set([
+    "1","3","5","7","9","12","14","16","18","19","21","23","25","27","30","32","34","36"
+  ]);
+
+  function getColor(num) {
+    if (num === "0" || num === "00") return "green";
+    return RED_NUMBERS.has(num) ? "red" : "black";
+  }
+
+  // ── Familias de coordenadas (0-9) ──────────────────────
+  // Relación propia validada en 16+ meses de trazabilidad manual.
+  // Usada por el módulo "Potencial Liberación" (apoyos 1, 2 y 3).
+  const FAMILIAS = {
+    0: [1, 5, 9],
+    1: [8, 9],
+    2: [7, 8],
+    3: [6, 7],
+    4: [5, 6],
+    5: [0, 1, 9],
+    6: [3, 4],
+    7: [2, 3],
+    8: [1, 2],
+    9: [0, 1, 5]
+  };
+
+  const pocketLayer = document.getElementById("pocketLayer");
+  const pointer = document.getElementById("pointer");
+  const centerValue = document.getElementById("centerValue");
+  const numberInput = document.getElementById("numberInput");
+  const loadBtn = document.getElementById("loadBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const historyList = document.getElementById("historyList");
+  const sessionHistoryBtn = document.getElementById("sessionHistoryBtn");
+  const sessionHistorySection = document.getElementById("sessionHistorySection");
+  const cardinalsPanel = document.getElementById("cardinalsPanel");
+  const cardinalsBtn = document.getElementById("cardinalsBtn");
+  const printArea = document.getElementById("printArea");
+  let cardinalsVisible = false;
+  const cvalP1 = document.getElementById("cvalP1");
+  const cvalP2 = document.getElementById("cvalP2");
+  const cvalP3 = document.getElementById("cvalP3");
+  const cvalP4 = document.getElementById("cvalP4");
+  const cardP1 = document.getElementById("cardP1");
+  const cardP2 = document.getElementById("cardP2");
+  const cardP3 = document.getElementById("cardP3");
+  const cardP4 = document.getElementById("cardP4");
+  const markerP1 = document.getElementById("markerP1");
+  const markerP2 = document.getElementById("markerP2");
+  const markerP3 = document.getElementById("markerP3");
+  const markerP4 = document.getElementById("markerP4");
+  const coordsPanel = document.getElementById("coordsPanel");
+  const playsHistorySection = document.getElementById("playsHistorySection");
+  const playsHistoryList = document.getElementById("playsHistoryList");
+  const playsHistoryBtn = document.getElementById("playsHistoryBtn");
+  const coordsSegment = document.getElementById("coordsSegment");
+  const coordA = document.getElementById("coordA");
+  const coordB = document.getElementById("coordB");
+  const resetBtn = document.getElementById("resetBtn");
+  const resetPin = document.getElementById("resetPin");
+  const lockOverlay = document.getElementById("lockOverlay");
+  const lockPin = document.getElementById("lockPin");
+  const lockBtn = document.getElementById("lockBtn");
+  const lockError = document.getElementById("lockError");
+  const undoBtn = document.getElementById("undoBtn");
+  const undoPin = document.getElementById("undoPin");
+  const logoutBtn = document.getElementById("logoutBtnHeader");
+  const reportBtn = document.getElementById("reportBtn");
+  const reportPanel = document.getElementById("reportPanel");
+  const reportTable = document.querySelector("#reportTable tbody");
+  const reportFreqTable = document.querySelector("#reportFreqTable tbody");
+  const reportDescansoAlert = document.getElementById("reportDescansoAlert");
+  const reportNoVanMacho = document.getElementById("reportNoVanMacho");
+  const reportFuertes = document.getElementById("reportFuertes");
+  const reportC5C10Iguales = document.getElementById("reportC5C10Iguales");
+  const exportPdfBtn = document.getElementById("exportPdfBtn");
+  const exportDataBtn = document.getElementById("exportDataBtn");
+  const importDataBtn = document.getElementById("importDataBtn");
+  const importDataInput = document.getElementById("importDataInput");
+  const quedadasPanel = document.getElementById("quedadasPanel");
+  const quedadasBodega = document.getElementById("quedadasBodega");
+  const machoManoBox = document.getElementById("machoManoBox");
+  const machoManoContent = document.getElementById("machoManoContent");
+  const quedadasRachas = document.getElementById("quedadasRachas");
+  const quedadasDescanso = document.getElementById("quedadasDescanso");
+  const tendenciaBtn = document.getElementById("tendenciaBtn");
+  const tendenciaBtnRow = document.getElementById("tendenciaBtnRow");
+  const tendenciaContent = document.getElementById("tendenciaContent");
+  const liberacionPanel = document.getElementById("liberacionPanel");
+  const liberacionContent = document.getElementById("liberacionContent");
+
+  const total = SEQUENCE.length;
+  const anglePerPocket = 360 / total;
+
+  // Construir las 38 casillas alrededor del círculo
+  SEQUENCE.forEach((num, i) => {
+    const el = document.createElement("div");
+    el.className = `pocket ${getColor(num)}`;
+    const span = document.createElement("span");
+    span.textContent = num;
+    const angle = i * anglePerPocket;
+    span.style.transform = `rotate(${angle}deg)`;
+    el.appendChild(span);
+    pocketLayer.style.position = "absolute";
+    pocketLayer.style.inset = "0";
+    pocketLayer.appendChild(el);
+  });
+
+  let currentRotation = 0;
+  let history = [];
+  let playCounter = parseInt(localStorage.getItem("ruleta_playCounter") || "0", 10);
+
+  // Restaurar historial guardado (persistencia local)
+  try {
+    const saved = localStorage.getItem("ruleta_history");
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+  } catch (e) {
+    history = [];
+  }
+
+  // Aplica `history`/`playCounter` actuales a toda la interfaz. Se usa al
+  // arrancar la página y también tras "Importar trazabilidad".
+  function restoreFromHistory() {
+    if (history.length > 0) {
+      const last = history[0];
+      currentRotation = (Math.floor(currentRotation / 360) + 1) * 360 + (last.index * anglePerPocket);
+      pointer.style.transform = `rotate(${currentRotation}deg)`;
+      centerValue.textContent = last.num;
+      centerValue.className = `value ${last.color}-num`;
+      renderHistory();
+      updateCardinals();
+      renderPlaysHistory();
+
+      // Restaurar panel de coordenadas si la última carga generó jugada
+      if (last.coords) {
+        coordA.textContent = last.coords[0];
+        coordB.textContent = last.coords[1];
+        coordsSegment.textContent = `Número ${last.num} ubicado en segmento`;
+        coordsPanel.style.display = "block";
+      }
+    } else {
+      currentRotation = 0;
+      pointer.style.transform = "rotate(0deg)";
+      centerValue.textContent = "—";
+      centerValue.className = "value";
+      renderHistory();
+      renderPlaysHistory();
+      coordsPanel.style.display = "none";
+      cardinalsBtn.style.display = "none";
+      cardinalsPanel.style.display = "none";
+    }
+
+    renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
+  }
+
+  restoreFromHistory();
+
+  function loadNumber() {
+    const raw = numberInput.value.trim();
+    errorMsg.textContent = "";
+    errorMsg.style.color = "";
+
+    const normalized = raw === "0 0" ? "00" : raw;
+    const index = SEQUENCE.indexOf(normalized);
+
+    if (index === -1) {
+      errorMsg.textContent = "Número inválido. Usa 0–36 o 00.";
+      return;
+    }
+
+    // Calcular el ángulo objetivo para que esa casilla quede bajo el indicador (arriba)
+    const targetAngle = index * anglePerPocket;
+
+    // Avanzar siempre hacia adelante para que la animación tenga sentido visual
+    const fullTurns = Math.floor(currentRotation / 360) + 1;
+    const newRotation = fullTurns * 360 + targetAngle;
+
+    currentRotation = newRotation;
+    pointer.style.transform = `rotate(${currentRotation}deg)`;
+
+    const color = getColor(normalized);
+    centerValue.textContent = normalized;
+    centerValue.className = `value ${color}-num`;
+
+    history.unshift({ num: normalized, color, index });
+    localStorage.setItem("ruleta_history", JSON.stringify(history));
+    renderHistory();
+    const cardinals = updateCardinals();
+
+    // Modo continuo: cada carga desde la 2ª genera una jugada
+    if (cardinals) {
+      updateCoordinates(cardinals.p1Index, cardinals.p2Index, cardinals.p3Index, cardinals.p4Index);
+    } else {
+      coordsPanel.style.display = "none";
+    }
+
+    numberInput.value = "";
+    numberInput.focus();
+  }
+
+  // ── Motor de Puntos Cardinales (Módulo 1) ──────────────
+  // Fórmula confirmada:
+  // P1 = índice del PENÚLTIMO número cargado
+  // P2 = (P1 + 19) mod 38   (antípoda de P1)
+  // P3 = (P1 + 9)  mod 38   (9 casillas, sentido horario en la rueda física)
+  // P4 = (P3 + 19) mod 38   (antípoda de P3)
+
+  function mod38(n) {
+    return ((n % total) + total) % total;
+  }
+
+  function positionMarker(markerEl, pocketIndex) {
+    const angle = pocketIndex * anglePerPocket;
+    markerEl.style.transform = `rotate(${angle}deg)`;
+    markerEl.style.display = "block";
+  }
+
+  function fillCard(cardEl, valueEl, pocketIndex) {
+    const num = SEQUENCE[pocketIndex];
+    const color = getColor(num);
+    valueEl.textContent = num;
+    cardEl.className = `cardinal-card ${color}`;
+  }
+
+  function updateCardinals() {
+    // Necesitamos al menos 2 números cargados para tener "penúltimo"
+    if (history.length < 2) {
+      cardinalsBtn.style.display = "none";
+      cardinalsPanel.style.display = "none";
+      markerP1.style.display = "none";
+      markerP2.style.display = "none";
+      markerP3.style.display = "none";
+      markerP4.style.display = "none";
+      return null;
+    }
+
+    // history[0] = último cargado, history[1] = penúltimo
+    const p1Index = history[1].index;
+    const p2Index = mod38(p1Index + 19);
+    const p3Index = mod38(p1Index + 9);
+    const p4Index = mod38(p3Index + 19);
+
+    fillCard(cardP1, cvalP1, p1Index);
+    fillCard(cardP2, cvalP2, p2Index);
+    fillCard(cardP3, cvalP3, p3Index);
+    fillCard(cardP4, cvalP4, p4Index);
+
+    positionMarker(markerP1, p1Index);
+    positionMarker(markerP2, p2Index);
+    positionMarker(markerP3, p3Index);
+    positionMarker(markerP4, p4Index);
+
+    cardinalsBtn.style.display = "block";
+    cardinalsPanel.style.display = cardinalsVisible ? "block" : "none";
+    return { p1Index, p2Index, p3Index, p4Index };
+  }
+
+  // ── Motor de Coordenadas (Módulo 2) ────────────────────
+  // Los 4 cardinales dividen las 38 casillas en 4 segmentos:
+  //   P1 -> P3  (9 casillas)
+  //   P3 -> P2  (10 casillas)
+  //   P2 -> P4  (9 casillas)
+  //   P4 -> P1  (10 casillas)
+  // Contando siempre en sentido de índices crecientes (orden físico fijo).
+  // El número ACTUAL (history[0]) cae en uno de estos segmentos.
+  // Coordenada = (distancia desde el cardinal de entrada,
+  //               distancia hasta el cardinal de salida).
+
+  function forwardDistance(fromIndex, toIndex) {
+    return mod38(toIndex - fromIndex);
+  }
+
+  function updateCoordinates(p1, p2, p3, p4) {
+    const currentIndex = history[0].index;
+
+    const segments = [
+      { name: "P1 → P3 (9 casillas)", from: p1, to: p3 },
+      { name: "P3 → P2 (10 casillas)", from: p3, to: p2 },
+      { name: "P2 → P4 (9 casillas)", from: p2, to: p4 },
+      { name: "P4 → P1 (10 casillas)", from: p4, to: p1 },
+    ];
+
+    let found = null;
+
+    for (const seg of segments) {
+      const segLen = forwardDistance(seg.from, seg.to);
+      const distFrom = forwardDistance(seg.from, currentIndex);
+      if (distFrom < segLen) {
+        const distTo = segLen - distFrom;
+        found = {
+          name: seg.name,
+          a: distFrom === 10 ? 9 : distFrom,
+          b: distTo === 10 ? 9 : distTo
+        };
+        break;
+      }
+    }
+
+    if (!found) {
+      coordsPanel.style.display = "none";
+      return;
+    }
+
+    coordsSegment.textContent = `Número ${history[0].num} ubicado en segmento ${found.name}`;
+    const low = Math.min(found.a, found.b);
+    const high = Math.max(found.a, found.b);
+    coordA.textContent = low;
+    coordB.textContent = high;
+    coordsPanel.style.display = "block";
+
+    // Anexar número de jugada y coordenadas a la trazabilidad (no afecta el cálculo)
+    playCounter++;
+    history[0].playNumber = playCounter;
+    history[0].coords = [low, high];
+    localStorage.setItem("ruleta_history", JSON.stringify(history));
+    localStorage.setItem("ruleta_playCounter", String(playCounter));
+    renderPlaysHistory();
+    renderQuedadas();
+    const wasReportOpen = reportPanel.style.display !== "none";
+    renderReport();
+    if (!wasReportOpen) {
+      reportPanel.style.display = "none";
+    }
+    renderPrintArea();
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = '<span class="empty-msg">Aún no se ha cargado ningún número.</span>';
+      sessionHistoryBtn.style.display = "none";
+      sessionHistorySection.style.display = "none";
+      return;
+    }
+    sessionHistoryBtn.style.display = "block";
+    historyList.innerHTML = "";
+    history.forEach((entry, i) => {
+      const chip = document.createElement("div");
+      chip.className = `chip ${entry.color}`;
+      if (i === 0) chip.classList.add("latest");
+      chip.textContent = entry.num;
+      historyList.appendChild(chip);
+    });
+  }
+
+  function renderPlaysHistory() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    if (plays.length === 0) {
+      playsHistoryBtn.style.display = "none";
+      playsHistorySection.style.display = "none";
+      return;
+    }
+    playsHistoryBtn.style.display = "block";
+    playsHistoryList.innerHTML = "";
+    plays.forEach((entry) => {
+      const item = document.createElement("div");
+      item.className = "chip black";
+      item.style.width = "auto";
+      item.style.padding = "4px 8px";
+      item.style.fontSize = "0.7rem";
+      item.textContent = `#${entry.playNumber} · ${entry.num} · ${entry.coords[0]}/${entry.coords[1]}`;
+      playsHistoryList.appendChild(item);
+    });
+  }
+
+  // ── Informe últimos 12 giros (Módulo 4) ────────────────
+  // Lee la trazabilidad ya guardada; no afecta cálculo de cardinales/coordenadas.
+  function renderReport() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    const last12 = plays.slice(0, 12); // plays[0] = C1 (más reciente)
+
+    if (last12.length === 0) {
+      reportTable.innerHTML = '<tr><td colspan="12">Aún no hay jugadas registradas.</td></tr>';
+      reportFreqTable.innerHTML = "";
+      reportPanel.style.display = "block";
+      return;
+    }
+
+    // Fila de encabezados C1..C12 (de izquierda C12 a derecha C1, según el demo)
+    const ordered = [...last12]; // ordered[0] = C1
+    const n = ordered.length;
+
+    let headerRow = "<tr>";
+    let numRow = "<tr>";
+    let lowRow = "<tr>";
+    let highRow = "<tr>";
+
+    // Recorremos de C(n) a C1, de izquierda a derecha
+    for (let i = n; i >= 1; i--) {
+      const entry = ordered[i - 1];
+      const isHl = (i === 5 || i === 10);
+      const hlAttr = isHl ? ' class="col-highlight"' : '';
+      headerRow += `<td${hlAttr}>C${i}</td>`;
+      numRow += `<td class="cell-num">#${entry.num}</td>`;
+      const low = Math.min(entry.coords[0], entry.coords[1]);
+      const high = Math.max(entry.coords[0], entry.coords[1]);
+      lowRow += `<td${hlAttr}>${low}</td>`;
+      highRow += `<td${hlAttr}>${high}</td>`;
+    }
+    headerRow += "</tr>";
+    numRow += "</tr>";
+    lowRow += "</tr>";
+    highRow += "</tr>";
+
+    reportTable.innerHTML = numRow + headerRow + lowRow + highRow;
+
+    // Frecuencia de coordenadas (0-9) en los últimos 12 giros (24 valores)
+    const freq = new Array(10).fill(0);
+    last12.forEach(entry => {
+      freq[entry.coords[0]]++;
+      freq[entry.coords[1]]++;
+    });
+
+    // Construir celdas: cada celda muestra el dígito repetido tantas veces como salió,
+    // o "X" si no salió ninguna vez. 5 por fila, igual que el demo (0-4 / 5-9).
+    let freqRow1 = "<tr>";
+    let freqRow2 = "<tr>";
+    for (let d = 0; d <= 4; d++) {
+      const cls = freq[d] >= 3 ? ' class="freq-highlight"' : '';
+      freqRow1 += `<td${cls}>${freq[d] === 0 ? "X" : String(d).repeat(freq[d])}</td>`;
+    }
+    for (let d = 5; d <= 9; d++) {
+      const cls = freq[d] >= 3 ? ' class="freq-highlight"' : '';
+      freqRow2 += `<td${cls}>${freq[d] === 0 ? "X" : String(d).repeat(freq[d])}</td>`;
+    }
+    freqRow1 += "</tr>";
+    freqRow2 += "</tr>";
+
+    reportFreqTable.innerHTML = freqRow1 + freqRow2;
+
+    // % de repetición de ESTA tabla (últimos 12 giros): celdas con 3+
+    // repeticiones, cada repetición = 10%. (ej: 555 666 222 888 33333 => 170%)
+    let pctTabla = 0;
+    freq.forEach(c => { if (c >= 3) pctTabla += c * 10; });
+
+    // Alerta de "potencial descanso": repetición de esta tabla > 120%
+    // combinada con Descanso en racha negativa (módulo Macho).
+    const quedadas = computeQuedadas();
+    if (quedadas.active && pctTabla > 120 && quedadas.rachaDescanso < 0) {
+      reportDescansoAlert.innerHTML = `⚠ Potencial descanso: repetición de coordenadas al ${pctTabla}% + Descanso en racha ${quedadas.rachaDescanso}.`;
+      reportDescansoAlert.style.color = "var(--gold)";
+    } else {
+      reportDescansoAlert.innerHTML = "";
+    }
+
+    // ── Coordenadas que no van a Módulo Macho ──────────────
+    // Unión de: coordenadas presentes en C1-C4 + dígitos en bodega del
+    // módulo Macho. Si la unión cubre 0-9 completo => "Jugada Bloque Vacío":
+    // el módulo Macho no cargará nuevos dígitos en el próximo giro.
+    const c1c4Set = new Set();
+    ordered.slice(0, 4).forEach(e => { c1c4Set.add(e.coords[0]); c1c4Set.add(e.coords[1]); });
+
+    const noVanMachoSet = new Set(c1c4Set);
+    if (quedadas.active) {
+      quedadas.bodega.forEach((nivel, digito) => {
+        if (nivel !== null) noVanMachoSet.add(digito);
+      });
+    }
+
+    const noVanMachoList = [...noVanMachoSet].sort((a, b) => a - b);
+    let noVanHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Coordenadas que no van a Módulo Macho</label>`;
+    noVanHtml += `<div style="font-size:0.85rem;">${noVanMachoList.length > 0 ? noVanMachoList.join(", ") : "—"}</div>`;
+
+    if (noVanMachoList.length === 10) {
+      noVanHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Jugada Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará, o revisa la coordenada más repetida en "Orden repetición coordenadas".</div>`;
+    }
+
+    reportNoVanMacho.innerHTML = noVanHtml;
+
+    // ── Jugada Potencial a Repetición de Coordenadas más Fuertes ──
+    // Complemento: dígitos 0-9 que NO están en "Coordenadas que no van
+    // a Módulo Macho". Para cada uno, verifica si aparece en C5 o C10.
+    const faltantes = [];
+    for (let d = 0; d <= 9; d++) {
+      if (!noVanMachoSet.has(d)) faltantes.push(d);
+    }
+
+    let fuertesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Jugada Potencial a Repetición de Coordenadas más Fuertes</label>`;
+    if (faltantes.length === 0) {
+      fuertesHtml += `<div style="font-size:0.85rem;">—</div>`;
+    } else {
+      // Coordenadas faltantes, destacadas y solas
+      fuertesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold); margin-bottom:10px;">${faltantes.join(", ")}</div>`;
+
+      // Mapear C1-C4 y C10-C12 -> dígitos presentes (apoyos de validez)
+      const c1c4Apoyo = new Set();
+      ordered.slice(0, 4).forEach(e => { c1c4Apoyo.add(e.coords[0]); c1c4Apoyo.add(e.coords[1]); });
+
+      const c10c12Apoyo = new Set();
+      ordered.slice(9, 12).forEach(e => { c10c12Apoyo.add(e.coords[0]); c10c12Apoyo.add(e.coords[1]); });
+
+      // Mapear C5 y C10 -> dígitos presentes (solo nota informativa)
+      const c5c10Set = new Set();
+      if (ordered[4]) { c5c10Set.add(ordered[4].coords[0]); c5c10Set.add(ordered[4].coords[1]); } // C5
+      if (ordered[9]) { c5c10Set.add(ordered[9].coords[0]); c5c10Set.add(ordered[9].coords[1]); } // C10
+
+      faltantes.forEach(d => {
+        const apoyo1 = c1c4Apoyo.has(d);
+        const apoyo2 = c10c12Apoyo.has(d);
+        const enC5C10 = c5c10Set.has(d);
+        const fuerte = apoyo1 && apoyo2;
+
+        fuertesHtml += `<div style="margin-bottom:10px; padding:8px; border-left:3px solid ${fuerte ? "var(--gold)" : "#2a2d33"};">`;
+        fuertesHtml += `<div style="font-weight:800; ${fuerte ? "color:var(--gold);" : ""} margin-bottom:4px;">Coordenada ${d}${fuerte ? " · Jugada fuerte" : ""}</div>`;
+        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C1-C4: ${apoyo1 ? "sí" : "no"}</div>`;
+        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C10-C12: ${apoyo2 ? "sí" : "no"}</div>`;
+        fuertesHtml += `<div style="margin-left:8px; font-size:0.75rem; color:var(--muted); margin-top:4px;">Nota: ${enC5C10 ? "está en C5/C10" : "no está en C5/C10"}</div>`;
+        fuertesHtml += `</div>`;
+      });
+    }
+    reportFuertes.innerHTML = fuertesHtml;
+
+    // ── Jugada Columnas 5 y 10 coordenadas iguales ──────────
+    // Si C5 y C10 tienen el mismo par (baja, alta), se muestran esas
+    // coordenadas como resultado.
+    let c5c10IgualesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Jugada Columnas 5 y 10 Coordenadas Iguales</label>`;
+    if (ordered[4] && ordered[9]) {
+      const c5Low = Math.min(ordered[4].coords[0], ordered[4].coords[1]);
+      const c5High = Math.max(ordered[4].coords[0], ordered[4].coords[1]);
+      const c10Low = Math.min(ordered[9].coords[0], ordered[9].coords[1]);
+      const c10High = Math.max(ordered[9].coords[0], ordered[9].coords[1]);
+
+      if (c5Low === c10Low && c5High === c10High) {
+        c5c10IgualesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold);">${c5Low} / ${c5High}</div>`;
+
+        // Apoyo: ¿estas coordenadas coinciden con "Jugada Potencial a
+        // Repetición de Coordenadas más Fuertes" (faltantes)?
+        const lowEnFaltantes = faltantes.includes(c5Low);
+        const highEnFaltantes = faltantes.includes(c5High);
+
+        if (lowEnFaltantes || highEnFaltantes) {
+          const coincidentes = [c5Low, c5High].filter(d => faltantes.includes(d));
+          c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">Apoyo: coordenada(s) ${coincidentes.join(", ")} coincide(n) con "Jugada Potencial a Repetición" → potencial CARGADO a bodega Módulo Macho.</div>`;
+        } else {
+          c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">No coincide con "Jugada Potencial a Repetición" → potencial LIBERADO de bodega Módulo Macho (no cargado).</div>`;
+        }
+
+        // Nota de descanso (solo informativa)
+        if (quedadas.active && quedadas.rachaDescanso <= -4) {
+          c5c10IgualesHtml += `<div style="margin-top:6px; font-size:0.75rem; color:var(--muted);">Nota: Descanso en racha ${quedadas.rachaDescanso} (4+ veces sin descansar) — esto podría dañar el "cargado" y favorecer más bien el "liberado".</div>`;
+        }
+      } else {
+        c5c10IgualesHtml += `<div style="font-size:0.85rem;">—</div>`;
+      }
+    } else {
+      c5c10IgualesHtml += `<div style="font-size:0.85rem;">—</div>`;
+    }
+    reportC5C10Iguales.innerHTML = c5c10IgualesHtml;
+
+    reportPanel.style.display = "block";
+
+    renderLiberacion(ordered, freq, quedadas);
+  }
+
+  // ── Módulo Potencial Liberación ────────────────────────
+  // Para cada coordenada en la bodega del módulo Macho, evalúa 3 apoyos
+  // basados en la familia de esa coordenada (ver tabla FAMILIAS):
+  //   Apoyo 1: un hermano aparece como coordenada en C1-C4 (zona cabeza)
+  //   Apoyo 2: un hermano aparece como coordenada en C10-C12 (zona cola)
+  //   Apoyo 3: un hermano tiene freq >= 3 en la tabla de 12 giros
+  //   Apoyo 4 (informativo): Descanso en racha -3/-4/-5 = advertencia
+  // Con 2+ apoyos (de 1,2,3) se muestra como "Potencial liberación".
+  // Con los 3 apoyos, se indica como teoría más fuerte.
+  function renderLiberacion(ordered, freq, quedadas) {
+    if (!quedadas.active) {
+      liberacionPanel.style.display = "none";
+      return;
+    }
+
+    // Mapear cada dígito a las columnas específicas (C1-C4 y C10-C12) donde aparece
+    const cabezaCols = {}; // digito -> ["C1","C3",...]
+    ordered.slice(0, 4).forEach((e, idx) => {
+      const col = `C${idx + 1}`;
+      [e.coords[0], e.coords[1]].forEach(d => {
+        if (!cabezaCols[d]) cabezaCols[d] = [];
+        if (!cabezaCols[d].includes(col)) cabezaCols[d].push(col);
+      });
+    });
+
+    const colaCols = {}; // digito -> ["C10","C11",...]
+    ordered.slice(9, 12).forEach((e, idx) => {
+      const col = `C${idx + 10}`;
+      [e.coords[0], e.coords[1]].forEach(d => {
+        if (!colaCols[d]) colaCols[d] = [];
+        if (!colaCols[d].includes(col)) colaCols[d].push(col);
+      });
+    });
+
+    // Mapeo completo C1-C12 (para indicar columnas exactas del apoyo 3)
+    const todasCols = {}; // digito -> ["C1","C5",...]
+    ordered.forEach((e, idx) => {
+      const col = `C${idx + 1}`;
+      [e.coords[0], e.coords[1]].forEach(d => {
+        if (!todasCols[d]) todasCols[d] = [];
+        if (!todasCols[d].includes(col)) todasCols[d].push(col);
+      });
+    });
+
+    const items = [];
+
+    quedadas.bodega.forEach((nivel, digito) => {
+      if (nivel === null) return; // no está en bodega
+
+      const hermanos = FAMILIAS[digito] || [];
+      const hermanosCabeza = hermanos.filter(h => cabezaCols[h]);
+      const hermanosCola = hermanos.filter(h => colaCols[h]);
+      const hermanosFreq = hermanos.filter(h => freq[h] >= 3);
+
+      const apoyo1 = hermanosCabeza.length > 0;
+      const apoyo2 = hermanosCola.length > 0;
+      const apoyo3 = hermanosFreq.length > 0;
+
+      const totalApoyos = [apoyo1, apoyo2, apoyo3].filter(Boolean).length;
+
+      if (totalApoyos >= 1) {
+        const lineas = [];
+        if (apoyo1) {
+          hermanosCabeza.forEach(h => {
+            cabezaCols[h].forEach(col => lineas.push(`Hermano ${h} en ${col}`));
+          });
+        }
+        if (apoyo2) {
+          hermanosCola.forEach(h => {
+            colaCols[h].forEach(col => lineas.push(`Hermano ${h} en ${col}`));
+          });
+        }
+        if (apoyo3) {
+          hermanosFreq.forEach(h => {
+            lineas.push(`Hermano ${h} (${freq[h]}x) en ${(todasCols[h] || []).join("/")}`);
+          });
+        }
+
+        const testigo = totalApoyos === 3 ? "Teoría fuerte (3/3)" : `(${totalApoyos}/3)`;
+        let bloque = `<div style="margin-bottom:10px; color:var(--gold);">`;
+        bloque += `<div style="font-weight:800;">Coordenada ${digito} — ${nivel} veces · ${testigo}</div>`;
+        lineas.forEach(l => { bloque += `<div style="margin-left:10px;">${l}</div>`; });
+        bloque += `</div>`;
+        items.push(bloque);
+      }
+    });
+
+    if (items.length === 0) {
+      liberacionPanel.style.display = "none";
+      return;
+    }
+
+    liberacionContent.innerHTML = items.join("");
+    liberacionPanel.style.display = "block";
+  }
+
+  // ── Módulo Macho · Coordenadas Quedadas ────────────────
+  // Lee la trazabilidad ya guardada; no afecta cálculo de cardinales/coordenadas.
+  // Requiere al menos 20 jugadas para activarse.
+  //
+  // Procesos:
+  // 1. Cargado:  dígitos 0-9 ausentes en la ventana de 5 jugadas (10 coordenadas)
+  //              entran o avanzan su contador de -5 hasta -50.
+  // 2. Liberado: dígitos que estaban en bodega y reaparecen en la ventana, salen.
+  // 3. Descanso: ventana de 10 jugadas (20 coordenadas); % de repetición —
+  //              por ahora solo se muestra como dato de seguimiento (sin
+  //              umbral fijo todavía, según lo acordado).
+  // 4. Rachas:   Cargado y Liberado NO son mutuamente excluyentes (en un
+  //              mismo giro pueden ocurrir ambos). Descanso = NI cargó NI
+  //              liberó en ese giro. Cada proceso lleva su propia racha con
+  //              signo (+N si ocurre consecutivamente, -N si no ocurre).
+  //              Alertas: cargado <= -3, liberado <= -3, descanso <= -6.
+
+  function computeQuedadas() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    // plays[0] = más reciente. Para simular cronológicamente necesitamos
+    // recorrer desde la jugada más antigua hacia la más reciente.
+    const chrono = [...plays].reverse(); // chrono[0] = más antigua
+
+    const MIN_JUGADAS = 20;
+    if (chrono.length < MIN_JUGADAS) {
+      return { active: false, needed: MIN_JUGADAS - chrono.length };
+    }
+
+    // Estado del bodegaje: bodega[d] = nivel actual (negativo) o null si no está
+    const bodega = new Array(10).fill(null);
+
+    // Alerta especial del 5: registra cómo entró a bodega ('sola' o 'con4')
+    // y se mantiene hasta que se libere. Null si el 5 no está en bodega.
+    let alerta5 = null;
+
+    // Registro por giro de si cada proceso ocurrió (no son mutuamente excluyentes:
+    // Cargado y Liberado pueden ocurrir ambos en el mismo giro).
+    const eventosCargado = [];
+    const eventosLiberado = [];
+    const descansoPctPorGiro = [];
+
+    let lastDescansoPct = 0;
+
+    // Registro del giro (índice en chrono) en que cada dígito entró a bodega
+    // por última vez. Se usa para "Coordenadas Macho de la Mano": el contador
+    // de cada grupo (par/trío/...) cuenta los giros desde que su miembro más
+    // reciente entró a bodega.
+    const bodegaEntradaGiro = new Array(10).fill(null);
+
+    // Recorremos todo el historial para mantener el bodegaje al día
+    // (el bodegaje SÍ es acumulativo a través de los giros).
+    for (let i = 0; i < chrono.length; i++) {
+      // Ventana de bodegaje: las 5 jugadas más recientes hasta este punto (inclusive)
+      const bodegaWindow = chrono.slice(Math.max(0, i - 4), i + 1);
+      if (bodegaWindow.length < 5) continue; // aún no hay suficiente historial
+
+      // Ventana de descanso: las 10 jugadas más recientes hasta este punto (11 giros)
+      const descansoWindow = chrono.slice(Math.max(0, i - 9), i + 1);
+
+      // % de repetición en ventana de descanso (informativo)
+      // Cada coordenada = 10%. Sumamos el acumulado de repeticiones (excesos)
+      // sobre las 20 coordenadas de las 10 jugadas.
+      let descansoPctGiro = 0;
+      if (descansoWindow.length === 10) {
+        const freqD = new Array(10).fill(0);
+        descansoWindow.forEach(e => { freqD[e.coords[0]]++; freqD[e.coords[1]]++; });
+        // Sumamos las apariciones de dígitos que se repiten 3+ veces
+        // (celdas con 1-2 repeticiones no suman). Cada repetición = 10%.
+        // Ej: 555 666 222 888 33333 => 3+3+3+3+5=17 => 170%
+        let apariciones = 0;
+        freqD.forEach(c => { if (c >= 3) apariciones += c; });
+        descansoPctGiro = apariciones * 10;
+        lastDescansoPct = descansoPctGiro;
+      }
+      descansoPctPorGiro.push(descansoPctGiro);
+
+      // Presentes en la ventana de bodegaje
+      const present = new Set();
+      bodegaWindow.forEach(e => { present.add(e.coords[0]); present.add(e.coords[1]); });
+
+      let ocurreCargado = false;
+      let ocurreLiberado = false;
+      const entranNuevos = []; // dígitos que entran NUEVOS a bodega en este giro
+
+      for (let d = 0; d <= 9; d++) {
+        if (present.has(d)) {
+          // Presente: si estaba en bodega, se libera
+          if (bodega[d] !== null) {
+            bodega[d] = null;
+            bodegaEntradaGiro[d] = null;
+            ocurreLiberado = true;
+            if (d === 5) alerta5 = null; // el 5 se liberó: limpiar alerta
+          }
+        } else {
+          // Ausente: entra o avanza
+          if (bodega[d] === null) {
+            bodega[d] = -5;
+            bodegaEntradaGiro[d] = i;
+            ocurreCargado = true; // entra NUEVO al bodegaje (proceso 4: Cargado)
+            entranNuevos.push(d);
+          } else if (bodega[d] > -50) {
+            bodega[d]--;
+            // Sigue ausente pero ya estaba en bodega: no cuenta como "Cargado"
+            // en el proceso 4, es solo seguimiento del bodegaje existente.
+          }
+        }
+      }
+
+      // Alerta especial del 5: si entró nuevo este giro, registrar si fue
+      // solo o acompañado del 4 (también entrando nuevo en el mismo giro)
+      if (entranNuevos.includes(5)) {
+        alerta5 = entranNuevos.includes(4) ? 'con4' : 'sola';
+      }
+
+      eventosCargado.push(ocurreCargado);
+      eventosLiberado.push(ocurreLiberado);
+    }
+
+    // ── Proceso 4: rachas en ventanas limitadas ──────────
+    // 3 procesos NO mutuamente excluyentes (en un mismo giro pueden ocurrir
+    // tanto Cargado como Liberado a la vez):
+    //   Cargado:  al menos un dígito entra nuevo al bodegaje en este giro
+    //   Liberado: al menos un dígito sale del bodegaje en este giro
+    //   Descanso: NI cargó NI liberó en este giro
+    // Cargado/Liberado: ventana de las últimas 5 jugadas
+    // Descanso: ventana de las últimas 10 jugadas / 11 giros
+    function calcularRacha(eventos, ventana, limite) {
+      const ult = eventos.slice(-ventana);
+      let racha = 0;
+      // Recorremos desde el más reciente (final del array) hacia atrás
+      for (let i = ult.length - 1; i >= 0; i--) {
+        if (i === ult.length - 1) {
+          racha = ult[i] ? 1 : -1;
+        } else {
+          if (ult[i] === (racha > 0)) {
+            racha += (racha > 0 ? 1 : -1);
+          } else {
+            break;
+          }
+        }
+        // Tope según límite (en valor absoluto)
+        if (Math.abs(racha) >= limite) {
+          racha = racha > 0 ? limite : -limite;
+          break;
+        }
+      }
+      return racha;
+    }
+
+    const eventosDescanso = eventosCargado.map((c, idx) => !c && !eventosLiberado[idx]);
+
+    // ── Tendencia de Descansos por bloques de 10 jugadas ──
+    // Bloques fijos no deslizantes, definidos manualmente por el offset
+    // inicial (Bloque 1 = jugadas #7-16, según trazabilidad real del usuario).
+    // eventosDescanso[k] corresponde a la jugada #(k+5), ya que el bodegaje
+    // requiere un mínimo de 5 jugadas antes de empezar a registrar eventos.
+    const BLOQUE_INICIO = 7; // jugada # donde empieza el Bloque 1
+    const BLOQUE_TAM = 10;
+    const bloquesDescanso = [];
+    {
+      let bloqueNum = 1;
+      let inicioJugada = BLOQUE_INICIO;
+      while (true) {
+        const finJugada = inicioJugada + BLOQUE_TAM - 1;
+        const startIdx = inicioJugada - 5; // índice en eventosDescanso
+        const endIdx = finJugada - 5;      // índice inclusive
+        if (startIdx >= eventosDescanso.length) break; // bloque aún no inicia
+        const slice = eventosDescanso.slice(startIdx, endIdx + 1);
+        if (slice.length === 0) break;
+        const conteo = slice.filter(Boolean).length;
+        bloquesDescanso.push({
+          bloque: bloqueNum,
+          inicio: inicioJugada,
+          fin: finJugada,
+          conteo,
+          completo: slice.length === BLOQUE_TAM
+        });
+        bloqueNum++;
+        inicioJugada += BLOQUE_TAM;
+      }
+    }
+
+    const rachaCargado = calcularRacha(eventosCargado, 5, 5);
+    const rachaLiberado = calcularRacha(eventosLiberado, 5, 5);
+    const rachaDescanso = calcularRacha(eventosDescanso, 10, 6);
+
+    return {
+      active: true,
+      bodega,
+      bodegaEntradaGiro,
+      totalGiros: chrono.length,
+      rachaCargado,
+      rachaLiberado,
+      rachaDescanso,
+      descansoPct: lastDescansoPct,
+      alerta5,
+      bloquesDescanso
+    };
+  }
+
+  // ── Informe para impresión (media carta) ────────────────
+  // Reorganiza, en formato compacto y fondo blanco, los datos ya
+  // calculados por renderQuedadas() y renderReport(). No recalcula nada;
+  // solo lee el HTML/datos ya generados y los presenta para imprimir.
+  function renderPrintArea() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    const ultimaJugada = plays[0]; // más reciente, con coords
+
+    const now = new Date();
+    const fechaStr = now.toLocaleDateString('es-CO');
+    const horaStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+    let html = '<div style="font-family:Arial,Helvetica,sans-serif; font-size:8px; color:#000;">';
+
+    // Encabezado: fecha, hora, último número, jugada, ganador, coordenadas
+    html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+    html += `<div><strong>Fecha:</strong> ${fechaStr} &nbsp;&nbsp; <strong>Hora:</strong> ${horaStr}</div>`;
+    if (ultimaJugada) {
+      html += `<div><strong>Último número cargado #:</strong> ${ultimaJugada.num}</div>`;
+      html += `<div><strong>Número de jugada:</strong> #${ultimaJugada.playNumber}</div>`;
+      html += `<div><strong>Número cargado ganador:</strong> ${ultimaJugada.num}</div>`;
+      html += `<div><strong>Coordenadas del número ganador:</strong> ${ultimaJugada.coords[0]} / ${ultimaJugada.coords[1]}</div>`;
+    } else {
+      html += '<div>Sin jugadas registradas todavía.</div>';
+    }
+    html += '</div>';
+
+    // Puntos cardinales
+    if (cardinalsPanel.style.display !== "none" || cardinalsBtn.style.display !== "none") {
+      html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+      html += '<div style="font-weight:bold; margin-bottom:2px;">PUNTOS CARDINALES</div>';
+      html += `<div>P1: ${cvalP1.textContent} &nbsp; P2: ${cvalP2.textContent} &nbsp; P3: ${cvalP3.textContent} &nbsp; P4: ${cvalP4.textContent}</div>`;
+      html += '</div>';
+    }
+
+    // Módulo Macho: bodega + Macho de la Mano + rachas
+    html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+    html += '<div style="font-weight:bold; margin-bottom:2px;">MÓDULO MACHO · COORDENADAS QUEDADAS</div>';
+    html += `<div>${quedadasBodega.textContent.trim()}</div>`;
+    if (machoManoBox.style.display !== "none") {
+      html += '<div style="margin-top:2px;"><strong>Macho de la mano:</strong> ' + machoManoContent.textContent.trim() + '</div>';
+    }
+    html += `<div style="margin-top:2px;">${quedadasRachas.textContent.trim()}</div>`;
+    html += `<div>${quedadasDescanso.textContent.trim()}</div>`;
+    if (tendenciaBtnRow.style.display !== "none") {
+      html += `<div style="margin-top:2px;">${tendenciaContent.textContent.trim()}</div>`;
+    }
+    html += '</div>';
+
+    // Últimos 12 giros (tabla)
+    html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+    html += '<div style="font-weight:bold; margin-bottom:2px;">ÚLTIMOS 12 GIROS</div>';
+    html += '<table style="border-collapse:collapse; width:100%; font-size:7px; text-align:center;">' + reportTable.innerHTML + '</table>';
+    html += '</div>';
+
+    // Orden repetición coordenadas
+    html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+    html += '<div style="font-weight:bold; margin-bottom:2px;">ORDEN REPETICIÓN COORDENADAS</div>';
+    html += '<table style="border-collapse:collapse; width:100%; font-size:7px; text-align:center;">' + reportFreqTable.innerHTML + '</table>';
+    if (reportDescansoAlert.textContent.trim()) {
+      html += `<div style="margin-top:2px;">${reportDescansoAlert.textContent.trim()}</div>`;
+    }
+    html += '</div>';
+
+    // Coordenadas que no van a Módulo Macho
+    if (reportNoVanMacho.textContent.trim()) {
+      html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+      html += reportNoVanMacho.innerHTML;
+      html += '</div>';
+    }
+
+    // Jugada Potencial a Repetición de Coordenadas más Fuertes
+    if (reportFuertes.textContent.trim()) {
+      html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+      html += reportFuertes.innerHTML;
+      html += '</div>';
+    }
+
+    // Jugada Columnas 5 y 10 Coordenadas Iguales
+    if (reportC5C10Iguales.textContent.trim()) {
+      html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+      html += reportC5C10Iguales.innerHTML;
+      html += '</div>';
+    }
+
+    // Potencial Liberación
+    if (liberacionContent.textContent.trim()) {
+      html += '<div style="border:1px solid #000; padding:4px; margin-bottom:4px;">';
+      html += '<div style="font-weight:bold; margin-bottom:2px;">POTENCIAL LIBERACIÓN</div>';
+      html += liberacionContent.innerHTML;
+      html += '</div>';
+    }
+
+    html += '</div>';
+    printArea.innerHTML = html;
+  }
+
+
+  function renderQuedadas() {
+    const result = computeQuedadas();
+
+    if (!result.active) {
+      quedadasBodega.innerHTML = `<span class="empty-msg">Módulo Macho inactivo: faltan ${result.needed} jugada(s) para alcanzar el mínimo de 20.</span>`;
+      quedadasRachas.innerHTML = "";
+      quedadasDescanso.innerHTML = "";
+      quedadasPanel.style.display = "block";
+      return;
+    }
+
+    // Bodega: mostrar solo los dígitos actualmente "quedados"
+    const bodegaItems = [];
+    const bodegaOrdenada = []; // [{digito, nivel}], ordenado de más quedado (más negativo) a menos
+    result.bodega.forEach((nivel, digit) => {
+      if (nivel !== null) {
+        bodegaItems.push(`<div class="quedada-chip"><div class="digit">${digit}</div><div class="count">${nivel}</div></div>`);
+        bodegaOrdenada.push({ digito: digit, nivel });
+      }
+    });
+    bodegaOrdenada.sort((a, b) => a.nivel - b.nivel); // más negativo primero (más quedado)
+    quedadasBodega.innerHTML = bodegaItems.length > 0
+      ? bodegaItems.join("")
+      : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
+
+    // ── Coordenadas Macho de la Mano ────────────────────────
+    // Solo se muestra si hay 2+ dígitos en bodega (mínimo "de la mano").
+    // Para cada prefijo (par, trío, cuarteto...) en el orden de bodega
+    // (más quedado -> menos), el contador es INDEPENDIENTE del nivel de
+    // bodega: arranca en -1 cuando el grupo se completa (entra su miembro
+    // más reciente) y avanza -1 cada giro mientras ese grupo siga existiendo.
+    if (bodegaOrdenada.length >= 2) {
+      let manoHtml = "";
+      for (let i = 1; i < bodegaOrdenada.length; i++) {
+        const grupo = bodegaOrdenada.slice(0, i + 1);
+        const etiqueta = grupo.map(g => g.digito).join("");
+        // El miembro más reciente del grupo = el que entró en el giro más alto
+        let entradaMasReciente = -1;
+        grupo.forEach(g => {
+          const entrada = result.bodegaEntradaGiro[g.digito];
+          if (entrada !== null && entrada > entradaMasReciente) entradaMasReciente = entrada;
+        });
+        // Giros transcurridos desde que el grupo se completó (inclusive = -1)
+        const girosTranscurridos = (result.totalGiros - 1) - entradaMasReciente;
+        const conteo = -(girosTranscurridos + 1); // arranca en -1
+        manoHtml += `<div class="quedada-chip"><div class="digit">${etiqueta}</div><div class="count">${conteo}</div></div>`;
+      }
+      machoManoContent.innerHTML = manoHtml;
+      machoManoBox.style.display = "block";
+    } else {
+      machoManoContent.innerHTML = "";
+      machoManoBox.style.display = "none";
+    }
+
+    // Rachas con alertas
+    const cargadoAlert = result.rachaCargado <= -3;
+    const liberadoAlert = result.rachaLiberado <= -3;
+    const descansoAlert = result.rachaDescanso <= -6;
+
+    quedadasRachas.innerHTML = `
+      <div class="racha-chip ${cargadoAlert ? 'alert' : ''}">
+        <div class="label">Cargado</div>
+        <div class="value">${result.rachaCargado > 0 ? '+' : ''}${result.rachaCargado}</div>
+      </div>
+      <div class="racha-chip ${liberadoAlert ? 'alert' : ''}">
+        <div class="label">Liberado</div>
+        <div class="value">${result.rachaLiberado > 0 ? '+' : ''}${result.rachaLiberado}</div>
+      </div>
+      <div class="racha-chip ${descansoAlert ? 'alert' : ''}">
+        <div class="label">Descanso</div>
+        <div class="value">${result.rachaDescanso > 0 ? '+' : ''}${result.rachaDescanso}</div>
+      </div>
+    `;
+
+    quedadasDescanso.innerHTML = `Repetición ventana 10 giros: ${result.descansoPct}% (seguimiento, sin umbral aún)`;
+
+    // Alerta especial coordenada 5
+    if (result.alerta5 === 'sola') {
+      quedadasDescanso.innerHTML += `<div style="margin-top:6px; color:var(--gold);">⚠ Coordenada 5 se subió sola: cuando se libere, será en largas (5/5).</div>`;
+    } else if (result.alerta5 === 'con4') {
+      quedadasDescanso.innerHTML += `<div style="margin-top:6px; color:var(--gold);">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).</div>`;
+    }
+
+    // Tendencia de Descansos por bloques de 10 jugadas (en su propio bloque colapsable)
+    if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
+      let bloquesHtml = `<div style="font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Tendencia de Descansos · bloques de 10 jugadas</div>`;
+      result.bloquesDescanso.forEach(b => {
+        bloquesHtml += `<div>Cuántos descansos van de la jugada #${b.inicio} hasta la #${b.fin} = ${b.conteo}${b.completo ? "" : " (en curso)"}</div>`;
+      });
+      tendenciaContent.innerHTML = bloquesHtml;
+      tendenciaBtnRow.style.display = "flex";
+    } else {
+      tendenciaContent.innerHTML = "";
+      tendenciaBtnRow.style.display = "none";
+      tendenciaContent.style.display = "none";
+    }
+
+    quedadasPanel.style.display = "block";
+  }
+
+  loadBtn.addEventListener("click", loadNumber);
+  numberInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") loadNumber();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    const pin = resetPin.value.trim();
+    if (pin !== "7890") {
+      errorMsg.textContent = "Clave incorrecta. No se reinició la sesión.";
+      return;
+    }
+
+    resetPin.value = "";
+    history = [];
+    localStorage.removeItem("ruleta_history");
+    playCounter = 0;
+    localStorage.removeItem("ruleta_playCounter");
+    playsHistorySection.style.display = "none";
+    currentRotation = 0;
+    pointer.style.transform = "rotate(0deg)";
+    centerValue.textContent = "—";
+    centerValue.className = "value";
+    renderHistory();
+    cardinalsBtn.style.display = "none";
+    cardinalsPanel.style.display = "none";
+    coordsPanel.style.display = "none";
+    markerP1.style.display = "none";
+    markerP2.style.display = "none";
+    markerP3.style.display = "none";
+    markerP4.style.display = "none";
+    errorMsg.textContent = "";
+    numberInput.value = "";
+    numberInput.focus();
+    renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
+  });
+
+  // ── Overlay de bloqueo de sesión ───────────────────────
+  function unlock() {
+    const pin = lockPin.value.trim();
+    if (pin !== "7890") {
+      lockError.textContent = "Clave incorrecta.";
+      return;
+    }
+    lockOverlay.style.display = "none";
+    localStorage.setItem("ruleta_unlocked", "1");
+    lockPin.value = "";
+    lockError.textContent = "";
+    numberInput.focus();
+  }
+
+  // Si la sesión ya fue desbloqueada antes, no volver a pedir clave
+  if (localStorage.getItem("ruleta_unlocked") === "1") {
+    lockOverlay.style.display = "none";
+  }
+
+  lockBtn.addEventListener("click", unlock);
+  lockPin.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") unlock();
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("ruleta_unlocked");
+    lockOverlay.style.display = "flex";
+    lockPin.value = "";
+    lockError.textContent = "";
+  });
+
+  // ── Deshacer última carga (corrección de error humano) ─
+  undoBtn.addEventListener("click", () => {
+    const pin = undoPin.value.trim();
+    if (pin !== "7890") {
+      errorMsg.textContent = "Clave incorrecta. No se deshizo la última carga.";
+      return;
+    }
+    undoPin.value = "";
+
+    if (history.length === 0) {
+      errorMsg.textContent = "No hay nada que deshacer.";
+      return;
+    }
+
+    const removed = history.shift();
+
+    // Si esa carga había generado una jugada, retirarla del contador
+    if (removed.playNumber !== undefined) {
+      playCounter = Math.max(0, playCounter - 1);
+      localStorage.setItem("ruleta_playCounter", String(playCounter));
+    }
+
+    localStorage.setItem("ruleta_history", JSON.stringify(history));
+    renderHistory();
+    renderPlaysHistory();
+
+    if (history.length > 0) {
+      const last = history[0];
+      currentRotation = (Math.floor(currentRotation / 360) + 1) * 360 + (last.index * anglePerPocket);
+      pointer.style.transform = `rotate(${currentRotation}deg)`;
+      centerValue.textContent = last.num;
+      centerValue.className = `value ${last.color}-num`;
+
+      const cardinals = updateCardinals();
+      if (cardinals && last.coords) {
+        coordA.textContent = last.coords[0];
+        coordB.textContent = last.coords[1];
+        coordsSegment.textContent = `Número ${last.num} ubicado en segmento`;
+        coordsPanel.style.display = "block";
+      } else {
+        coordsPanel.style.display = "none";
+      }
+    } else {
+      currentRotation = 0;
+      pointer.style.transform = "rotate(0deg)";
+      centerValue.textContent = "—";
+      centerValue.className = "value";
+      cardinalsBtn.style.display = "none";
+      cardinalsPanel.style.display = "none";
+      coordsPanel.style.display = "none";
+      markerP1.style.display = "none";
+      markerP2.style.display = "none";
+      markerP3.style.display = "none";
+      markerP4.style.display = "none";
+    }
+
+    numberInput.focus();
+    renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
+  });
+
+  reportBtn.addEventListener("click", () => {
+    if (reportPanel.style.display === "none") {
+      renderReport();
+    } else {
+      reportPanel.style.display = "none";
+    }
+  });
+
+  playsHistoryBtn.addEventListener("click", () => {
+    if (playsHistorySection.style.display === "none") {
+      playsHistorySection.style.display = "block";
+    } else {
+      playsHistorySection.style.display = "none";
+    }
+  });
+
+  sessionHistoryBtn.addEventListener("click", () => {
+    if (sessionHistorySection.style.display === "none") {
+      sessionHistorySection.style.display = "block";
+    } else {
+      sessionHistorySection.style.display = "none";
+    }
+  });
+
+  cardinalsBtn.addEventListener("click", () => {
+    cardinalsVisible = !cardinalsVisible;
+    cardinalsPanel.style.display = cardinalsVisible ? "block" : "none";
+  });
+
+  tendenciaBtn.addEventListener("click", () => {
+    if (tendenciaContent.style.display === "none") {
+      tendenciaContent.style.display = "block";
+    } else {
+      tendenciaContent.style.display = "none";
+    }
+  });
+
+  // Botón guía para mediano plazo: funcionará al abrir el archivo en un
+  // navegador real (Chrome) o tras subirlo a GitHub Pages. En el visor
+  // actual, window.print() puede no estar disponible.
+  exportPdfBtn.addEventListener("click", () => {
+    renderReport();
+    renderPrintArea();
+    try {
+      window.print();
+    } catch (e) {
+      errorMsg.textContent = "Exportar PDF requiere abrir este archivo en un navegador (Chrome).";
+    }
+  });
+
+  // ── Exportar / Importar trazabilidad ────────────────────
+  // Permite respaldar y restaurar `history` + `playCounter` como archivo
+  // JSON, para migrar la trazabilidad entre navegadores/dispositivos sin
+  // tener que recargar número por número. No afecta ningún cálculo: solo
+  // guarda/restaura los mismos datos que ya viven en localStorage.
+  exportDataBtn.addEventListener("click", () => {
+    const data = {
+      history,
+      playCounter,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `trazabilidad-alex777-${fechaArchivo}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  importDataBtn.addEventListener("click", () => {
+    importDataInput.click();
+  });
+
+  importDataInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!Array.isArray(data.history)) {
+          throw new Error("Formato inválido: falta 'history'.");
+        }
+        history = data.history;
+        playCounter = typeof data.playCounter === "number" ? data.playCounter : 0;
+        localStorage.setItem("ruleta_history", JSON.stringify(history));
+        localStorage.setItem("ruleta_playCounter", String(playCounter));
+        restoreFromHistory();
+        errorMsg.textContent = "";
+        errorMsg.style.color = "var(--gold)";
+        errorMsg.textContent = `Trazabilidad importada: ${history.length} carga(s).`;
+      } catch (err) {
+        errorMsg.style.color = "";
+        errorMsg.textContent = "No se pudo importar el archivo: " + err.message;
+      }
+    };
+    reader.readAsText(file);
+    importDataInput.value = ""; // permitir re-importar el mismo archivo
+  });
+</script>
+
+</body>
+</html>
