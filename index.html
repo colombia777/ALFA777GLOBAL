@@ -1823,10 +1823,18 @@
       const enBodegaOrdenado = [];
       result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodegaOrdenado.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
       enBodegaOrdenado.sort((a, b) => a.entrada - b.entrada);
-      const enBodega = enBodegaOrdenado.map(item => `${item.digito}(${item.nivel})`);
+      const CHIP = 'display:inline-block; border:0.5px solid #999; border-radius:2mm; padding:1mm 2mm; margin:0 1mm 1mm 0; text-align:center; min-width:8mm;';
       html += `<div style="${BLK}">`;
       html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
-      html += `<div>${enBodega.length > 0 ? enBodega.join(' · ') : 'Sin coordenadas quedadas'}</div>`;
+      if (enBodegaOrdenado.length > 0) {
+        html += `<div>`;
+        enBodegaOrdenado.forEach(item => {
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${item.digito}</div><div style="color:#b3261e; font-weight:800;">${item.nivel}</div></div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div>Sin coordenadas quedadas</div>`;
+      }
       html += '</div>';
 
       // ── Coordenadas Macho de la Mano ──
@@ -1836,7 +1844,7 @@
       if (bodegaOrdenadaPrint.length >= 2) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Coordenadas Macho de la Mano</div>`;
-        html += `<div style="${ROW}">`;
+        html += `<div>`;
         for (let i = 1; i < bodegaOrdenadaPrint.length; i++) {
           const grupo = bodegaOrdenadaPrint.slice(0, i + 1);
           const etiqueta = grupo.map(g => g.digito).join('');
@@ -1846,7 +1854,7 @@
             if (e !== null && e > entradaMax) entradaMax = e;
           });
           const conteo = -((result.totalGiros - 1 - entradaMax) + 1);
-          html += `<span><strong>${etiqueta}</strong>(${conteo})</span>`;
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${etiqueta}</div><div style="color:#b3261e; font-weight:800;">${conteo}</div></div>`;
         }
         html += '</div></div>';
       }
@@ -1861,10 +1869,11 @@
       html += '</div></div>';
 
       // ── Tendencia de Descansos · Bloques de 10 jugadas ──
+      // Solo se muestran los 2 bloques más recientes en el PDF.
       if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
-        result.bloquesDescanso.forEach(b => {
+        result.bloquesDescanso.slice(-2).reverse().forEach(b => {
           html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
         });
         html += '</div>';
@@ -2020,7 +2029,7 @@
     // Tendencia de Descansos por bloques de 10 jugadas (en su propio bloque colapsable)
     if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
       let bloquesHtml = `<div style="font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Tendencia de Descansos · bloques de 10 jugadas</div>`;
-      result.bloquesDescanso.forEach(b => {
+      [...result.bloquesDescanso].reverse().forEach(b => {
         bloquesHtml += `<div>Cuántos descansos van de la jugada #${b.inicio} hasta la #${b.fin} = ${b.conteo}${b.completo ? "" : " (en curso)"}</div>`;
       });
       tendenciaContent.innerHTML = bloquesHtml;
