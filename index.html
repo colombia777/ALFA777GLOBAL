@@ -525,21 +525,15 @@
       margin: 0.3in;
     }
     body * { visibility: hidden; }
-    #reportPanel, #reportPanel * { visibility: visible; }
-    #reportPanel {
+    #printArea, #printArea * { visibility: visible; }
+    #printArea {
       display: block !important;
       position: absolute;
       top: 0; left: 0; width: 100%;
       background: #fff;
       color: #000;
+      font-family: Arial, Helvetica, sans-serif;
     }
-    #reportPanel label { color: #000 !important; font-size: 0.9rem !important; }
-    #reportTable td, #reportFreqTable td {
-      border: 1px solid #000 !important;
-      font-size: 0.9rem !important;
-      padding: 4px !important;
-    }
-    #reportTable .cell-num { color: #b3261e !important; }
   }
 
   /* ---- MÓDULO MACHO · COORDENADAS QUEDADAS ---- */
@@ -643,7 +637,7 @@
 
   <div class="undo-row">
     <input type="password" id="undoPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4">
-    <button id="undoBtn">Deshacer última carga</button>
+    <button id="undoBtn">Deshacer U/C</button>
   </div>
 
   <div class="undo-row">
@@ -728,7 +722,6 @@
 
   <div class="undo-row" style="margin-top:14px;">
     <button id="reportBtn" style="flex:1;">Ver informe últimos 12 giros</button>
-    <button id="exportPdfBtn" title="Disponible cuando el proyecto esté en navegador/GitHub">Exportar PDF</button>
   </div>
 
   <div id="reportPanel" style="display:none; margin-top:14px;">
@@ -764,12 +757,27 @@
     </div>
   </div>
 
-  <div id="liberacionPanel" style="display:none; margin-top:14px;" class="section-box">
+  <div id="liberacionPanel" class="section-box" style="display:none; margin-top:14px;">
     <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
       Potencial Liberación
     </label>
     <div style="font-size:0.75rem;" id="liberacionContent"></div>
   </div>
+
+  <div id="printArea" style="display:none;"></div>
+
+  <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
+    <input type="password" id="dataPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem;">
+  </div>
+  <div class="undo-row">
+    <button id="exportDataBtn" style="flex:1;">Exportar trazabilidad</button>
+    <button id="importDataBtn" style="flex:1;">Importar trazabilidad</button>
+    <input type="file" id="importDataInput" accept="application/json" style="display:none;">
+  </div>
+  <div class="undo-row" style="margin-top:6px;">
+    <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
+  </div>
+  <div id="dataPinMsg" style="font-size:0.8rem; color:var(--red); margin-top:6px; min-height:1em;"></div>
 </div>
 
 <script>
@@ -816,6 +824,7 @@
   const sessionHistorySection = document.getElementById("sessionHistorySection");
   const cardinalsPanel = document.getElementById("cardinalsPanel");
   const cardinalsBtn = document.getElementById("cardinalsBtn");
+  const printArea = document.getElementById("printArea");
   let cardinalsVisible = false;
   const cvalP1 = document.getElementById("cvalP1");
   const cvalP2 = document.getElementById("cvalP2");
@@ -854,6 +863,11 @@
   const reportFuertes = document.getElementById("reportFuertes");
   const reportC5C10Iguales = document.getElementById("reportC5C10Iguales");
   const exportPdfBtn = document.getElementById("exportPdfBtn");
+  const exportDataBtn = document.getElementById("exportDataBtn");
+  const importDataBtn = document.getElementById("importDataBtn");
+  const importDataInput = document.getElementById("importDataInput");
+  const dataPin = document.getElementById("dataPin");
+  const dataPinMsg = document.getElementById("dataPinMsg");
   const quedadasPanel = document.getElementById("quedadasPanel");
   const quedadasBodega = document.getElementById("quedadasBodega");
   const machoManoBox = document.getElementById("machoManoBox");
@@ -892,34 +906,60 @@
     const saved = localStorage.getItem("ruleta_history");
     if (saved) {
       history = JSON.parse(saved);
-      if (history.length > 0) {
-        const last = history[0];
-        currentRotation = (Math.floor(currentRotation / 360) + 1) * 360 + (last.index * anglePerPocket);
-        pointer.style.transform = `rotate(${currentRotation}deg)`;
-        centerValue.textContent = last.num;
-        centerValue.className = `value ${last.color}-num`;
-        renderHistory();
-        updateCardinals();
-        renderPlaysHistory();
-
-        // Restaurar panel de coordenadas si la última carga generó jugada
-        if (last.coords) {
-          coordA.textContent = last.coords[0];
-          coordB.textContent = last.coords[1];
-          coordsSegment.textContent = `Número ${last.num} ubicado en segmento`;
-          coordsPanel.style.display = "block";
-        }
-      }
     }
   } catch (e) {
     history = [];
   }
 
-  renderQuedadas();
+  // Aplica `history`/`playCounter` actuales a toda la interfaz. Se usa al
+  // arrancar la página y también tras "Importar trazabilidad".
+  function restoreFromHistory() {
+    if (history.length > 0) {
+      const last = history[0];
+      currentRotation = (Math.floor(currentRotation / 360) + 1) * 360 + (last.index * anglePerPocket);
+      pointer.style.transform = `rotate(${currentRotation}deg)`;
+      centerValue.textContent = last.num;
+      centerValue.className = `value ${last.color}-num`;
+      renderHistory();
+      updateCardinals();
+      renderPlaysHistory();
+
+      // Restaurar panel de coordenadas si la última carga generó jugada
+      if (last.coords) {
+        coordA.textContent = last.coords[0];
+        coordB.textContent = last.coords[1];
+        coordsSegment.textContent = `Número ${last.num} ubicado en segmento`;
+        coordsPanel.style.display = "block";
+      }
+    } else {
+      currentRotation = 0;
+      pointer.style.transform = "rotate(0deg)";
+      centerValue.textContent = "—";
+      centerValue.className = "value";
+      renderHistory();
+      renderPlaysHistory();
+      coordsPanel.style.display = "none";
+      cardinalsBtn.style.display = "none";
+      cardinalsPanel.style.display = "none";
+    }
+
+    renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
+  }
+
+  restoreFromHistory();
 
   function loadNumber() {
     const raw = numberInput.value.trim();
     errorMsg.textContent = "";
+    errorMsg.style.color = "";
 
     const normalized = raw === "0 0" ? "00" : raw;
     const index = SEQUENCE.indexOf(normalized);
@@ -1077,9 +1117,12 @@
     localStorage.setItem("ruleta_playCounter", String(playCounter));
     renderPlaysHistory();
     renderQuedadas();
-    if (reportPanel.style.display !== "none") {
-      renderReport();
+    const wasReportOpen = reportPanel.style.display !== "none";
+    renderReport();
+    if (!wasReportOpen) {
+      reportPanel.style.display = "none";
     }
+    renderPrintArea();
   }
 
   function renderHistory() {
@@ -1369,7 +1412,7 @@
 
       const totalApoyos = [apoyo1, apoyo2, apoyo3].filter(Boolean).length;
 
-      if (totalApoyos === 3) {
+      if (totalApoyos >= 1) {
         const lineas = [];
         if (apoyo1) {
           hermanosCabeza.forEach(h => {
@@ -1387,8 +1430,9 @@
           });
         }
 
+        const testigo = totalApoyos === 3 ? "Teoría fuerte (3/3)" : `(${totalApoyos}/3)`;
         let bloque = `<div style="margin-bottom:10px; color:var(--gold);">`;
-        bloque += `<div style="font-weight:800;">Coordenada ${digito} — ${nivel} veces${totalApoyos === 3 ? " · Teoría fuerte (3/3)" : ""}</div>`;
+        bloque += `<div style="font-weight:800;">Coordenada ${digito} — ${nivel} veces · ${testigo}</div>`;
         lineas.forEach(l => { bloque += `<div style="margin-left:10px;">${l}</div>`; });
         bloque += `</div>`;
         items.push(bloque);
@@ -1447,6 +1491,12 @@
 
     let lastDescansoPct = 0;
 
+    // Registro del giro (índice en chrono) en que cada dígito entró a bodega
+    // por última vez. Se usa para "Coordenadas Macho de la Mano": el contador
+    // de cada grupo (par/trío/...) cuenta los giros desde que su miembro más
+    // reciente entró a bodega.
+    const bodegaEntradaGiro = new Array(10).fill(null);
+
     // Recorremos todo el historial para mantener el bodegaje al día
     // (el bodegaje SÍ es acumulativo a través de los giros).
     for (let i = 0; i < chrono.length; i++) {
@@ -1487,6 +1537,7 @@
           // Presente: si estaba en bodega, se libera
           if (bodega[d] !== null) {
             bodega[d] = null;
+            bodegaEntradaGiro[d] = null;
             ocurreLiberado = true;
             if (d === 5) alerta5 = null; // el 5 se liberó: limpiar alerta
           }
@@ -1494,6 +1545,7 @@
           // Ausente: entra o avanza
           if (bodega[d] === null) {
             bodega[d] = -5;
+            bodegaEntradaGiro[d] = i;
             ocurreCargado = true; // entra NUEVO al bodegaje (proceso 4: Cargado)
             entranNuevos.push(d);
           } else if (bodega[d] > -50) {
@@ -1585,6 +1637,8 @@
     return {
       active: true,
       bodega,
+      bodegaEntradaGiro,
+      totalGiros: chrono.length,
       rachaCargado,
       rachaLiberado,
       rachaDescanso,
@@ -1593,6 +1647,152 @@
       bloquesDescanso
     };
   }
+
+  // ── Informe para impresión (media carta) ────────────────
+  // Reorganiza, en formato compacto y fondo blanco, los datos ya
+  // calculados por renderQuedadas() y renderReport(). No recalcula nada;
+  // solo lee el HTML/datos ya generados y los presenta para imprimir.
+  function renderPrintArea() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    const ultimaJugada = plays[0];
+    const result = computeQuedadas();
+
+    const now = new Date();
+    const fechaStr = now.toLocaleDateString('es-CO');
+    const horaStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+    const S = 'font-family:Arial,Helvetica,sans-serif; font-size:6px; color:#000;';
+    const BLK = 'border:1px solid #000; padding:3px; margin-bottom:3px;';
+    const TTL = 'font-weight:bold; font-size:6.5px; margin-bottom:1px; text-transform:uppercase;';
+    const ROW = 'display:flex; gap:8px; flex-wrap:wrap;';
+
+    let html = `<div style="${S}">`;
+
+    // ── Encabezado ──
+    html += `<div style="${BLK} display:flex; gap:12px; flex-wrap:wrap;">`;
+    html += `<span><strong>Fecha:</strong> ${fechaStr}</span>`;
+    html += `<span><strong>Hora:</strong> ${horaStr}</span>`;
+    if (ultimaJugada) {
+      html += `<span><strong>Jugada #:</strong> ${ultimaJugada.playNumber}</span>`;
+      html += `<span><strong>Último # cargado:</strong> ${ultimaJugada.num}</span>`;
+      html += `<span><strong>Coords ganador:</strong> ${ultimaJugada.coords[0]}/${ultimaJugada.coords[1]}</span>`;
+    }
+    html += '</div>';
+
+    // ── Puntos Cardinales ──
+    if (cardinalsBtn.style.display !== "none") {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Puntos Cardinales (sobre penúltimo número)</div>`;
+      html += `<div style="${ROW}">`;
+      html += `<span>P1: <strong>${cvalP1.textContent}</strong></span>`;
+      html += `<span>P2: <strong>${cvalP2.textContent}</strong></span>`;
+      html += `<span>P3: <strong>${cvalP3.textContent}</strong></span>`;
+      html += `<span>P4: <strong>${cvalP4.textContent}</strong></span>`;
+      html += '</div></div>';
+    }
+
+    // ── Módulo Macho · Coordenadas Quedadas ──
+    if (result.active) {
+      const enBodega = [];
+      result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodega.push(`${d}(${nivel})`); });
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
+      html += `<div>${enBodega.length > 0 ? enBodega.join(' · ') : 'Sin coordenadas quedadas'}</div>`;
+      html += '</div>';
+
+      // ── Coordenadas Macho de la Mano ──
+      const bodegaOrdenadaPrint = [];
+      result.bodega.forEach((nivel, d) => { if (nivel !== null) bodegaOrdenadaPrint.push({ digito: d, nivel }); });
+      bodegaOrdenadaPrint.sort((a, b) => a.nivel - b.nivel);
+      if (bodegaOrdenadaPrint.length >= 2) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Coordenadas Macho de la Mano</div>`;
+        html += `<div style="${ROW}">`;
+        for (let i = 1; i < bodegaOrdenadaPrint.length; i++) {
+          const grupo = bodegaOrdenadaPrint.slice(0, i + 1);
+          const etiqueta = grupo.map(g => g.digito).join('');
+          let entradaMax = -1;
+          grupo.forEach(g => {
+            const e = result.bodegaEntradaGiro[g.digito];
+            if (e !== null && e > entradaMax) entradaMax = e;
+          });
+          const conteo = -((result.totalGiros - 1 - entradaMax) + 1);
+          html += `<span><strong>${etiqueta}</strong>(${conteo})</span>`;
+        }
+        html += '</div></div>';
+      }
+
+      // ── Cargado · Liberado · Descanso ──
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Rachas · Módulo Macho</div>`;
+      html += `<div style="${ROW}">`;
+      html += `<span>Cargado: <strong>${result.rachaCargado > 0 ? '+' : ''}${result.rachaCargado}</strong></span>`;
+      html += `<span>Liberado: <strong>${result.rachaLiberado > 0 ? '+' : ''}${result.rachaLiberado}</strong></span>`;
+      html += `<span>Descanso: <strong>${result.rachaDescanso > 0 ? '+' : ''}${result.rachaDescanso}</strong></span>`;
+      html += '</div></div>';
+
+      // ── Tendencia de Descansos · Bloques de 10 jugadas ──
+      if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
+        result.bloquesDescanso.forEach(b => {
+          html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
+        });
+        html += '</div>';
+      }
+    }
+
+    // ── Últimos 12 giros ──
+    html += `<div style="${BLK}">`;
+    html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
+    html += `<table style="border-collapse:collapse; width:100%; font-size:5.5px; text-align:center;">${reportTable.innerHTML}</table>`;
+    html += '</div>';
+
+    // ── Orden Repetición Coordenadas ──
+    html += `<div style="${BLK}">`;
+    html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
+    html += `<table style="border-collapse:collapse; width:100%; font-size:5.5px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
+    if (reportDescansoAlert.textContent.trim()) {
+      html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
+    }
+    html += '</div>';
+
+    // ── Coordenadas que no van a Módulo Macho ──
+    if (reportNoVanMacho.textContent.trim()) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
+      html += `<div>${reportNoVanMacho.textContent.trim()}</div>`;
+      html += '</div>';
+    }
+
+    // ── Jugada Potencial a Repetición de Coordenadas más Fuertes ──
+    if (reportFuertes.textContent.trim()) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
+      html += `<div style="white-space:pre-wrap;">${reportFuertes.textContent.trim()}</div>`;
+      html += '</div>';
+    }
+
+    // ── Jugada Columnas 5 y 10 Coordenadas Iguales ──
+    if (reportC5C10Iguales.textContent.trim()) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
+      html += `<div>${reportC5C10Iguales.textContent.trim()}</div>`;
+      html += '</div>';
+    }
+
+    // ── Potencial Liberación ──
+    if (liberacionContent.textContent.trim()) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Potencial Liberación</div>`;
+      html += `<div style="white-space:pre-wrap;">${liberacionContent.textContent.trim()}</div>`;
+      html += '</div>';
+    }
+
+    html += '</div>';
+    printArea.innerHTML = html;
+  }
+
 
   function renderQuedadas() {
     const result = computeQuedadas();
@@ -1620,15 +1820,25 @@
       : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
 
     // ── Coordenadas Macho de la Mano ────────────────────────
-    // Prefijos acumulativos del orden de bodega (más quedado -> menos).
-    // El conteo de cada grupo = el nivel del último elemento agregado
-    // (el miembro más reciente, que es el "cuello de botella" del grupo).
-    if (bodegaOrdenada.length >= 1) {
+    // Solo se muestra si hay 2+ dígitos en bodega (mínimo "de la mano").
+    // Para cada prefijo (par, trío, cuarteto...) en el orden de bodega
+    // (más quedado -> menos), el contador es INDEPENDIENTE del nivel de
+    // bodega: arranca en -1 cuando el grupo se completa (entra su miembro
+    // más reciente) y avanza -1 cada giro mientras ese grupo siga existiendo.
+    if (bodegaOrdenada.length >= 2) {
       let manoHtml = "";
-      for (let i = 0; i < bodegaOrdenada.length; i++) {
+      for (let i = 1; i < bodegaOrdenada.length; i++) {
         const grupo = bodegaOrdenada.slice(0, i + 1);
         const etiqueta = grupo.map(g => g.digito).join("");
-        const conteo = grupo[grupo.length - 1].nivel; // miembro más reciente del grupo
+        // El miembro más reciente del grupo = el que entró en el giro más alto
+        let entradaMasReciente = -1;
+        grupo.forEach(g => {
+          const entrada = result.bodegaEntradaGiro[g.digito];
+          if (entrada !== null && entrada > entradaMasReciente) entradaMasReciente = entrada;
+        });
+        // Giros transcurridos desde que el grupo se completó (inclusive = -1)
+        const girosTranscurridos = (result.totalGiros - 1) - entradaMasReciente;
+        const conteo = -(girosTranscurridos + 1); // arranca en -1
         manoHtml += `<div class="quedada-chip"><div class="digit">${etiqueta}</div><div class="count">${conteo}</div></div>`;
       }
       machoManoContent.innerHTML = manoHtml;
@@ -1718,6 +1928,14 @@
     numberInput.value = "";
     numberInput.focus();
     renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
   });
 
   // ── Overlay de bloqueo de sesión ───────────────────────
@@ -1809,6 +2027,14 @@
 
     numberInput.focus();
     renderQuedadas();
+    {
+      const wasReportOpen = reportPanel.style.display !== "none";
+      renderReport();
+      if (!wasReportOpen) {
+        reportPanel.style.display = "none";
+      }
+    }
+    renderPrintArea();
   });
 
   reportBtn.addEventListener("click", () => {
@@ -1852,12 +2078,93 @@
   // navegador real (Chrome) o tras subirlo a GitHub Pages. En el visor
   // actual, window.print() puede no estar disponible.
   exportPdfBtn.addEventListener("click", () => {
+    if (dataPin.value !== "7890") {
+      dataPinMsg.style.color = "var(--red)";
+      dataPinMsg.textContent = "Clave incorrecta para exportar PDF.";
+      dataPin.value = "";
+      return;
+    }
+    dataPin.value = "";
+    dataPinMsg.textContent = "";
+    const wasOpen = reportPanel.style.display !== "none";
     renderReport();
+    if (!wasOpen) reportPanel.style.display = "none";
+    renderPrintArea();
     try {
       window.print();
     } catch (e) {
-      errorMsg.textContent = "Exportar PDF requiere abrir este archivo en un navegador (Chrome).";
+      dataPinMsg.style.color = "var(--red)";
+      dataPinMsg.textContent = "Exportar PDF requiere abrir este archivo en un navegador (Chrome).";
     }
+  });
+
+  // ── Exportar / Importar trazabilidad ────────────────────
+  // Permite respaldar y restaurar `history` + `playCounter` como archivo
+  // JSON, para migrar la trazabilidad entre navegadores/dispositivos sin
+  // tener que recargar número por número. No afecta ningún cálculo: solo
+  // guarda/restaura los mismos datos que ya viven en localStorage.
+  exportDataBtn.addEventListener("click", () => {
+    if (dataPin.value !== "7890") {
+      dataPinMsg.style.color = "var(--red)";
+      dataPinMsg.textContent = "Clave incorrecta.";
+      dataPin.value = "";
+      return;
+    }
+    dataPin.value = "";
+    dataPinMsg.textContent = "";
+    const data = {
+      history,
+      playCounter,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `trazabilidad-alex777-${fechaArchivo}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  importDataBtn.addEventListener("click", () => {
+    if (dataPin.value !== "7890") {
+      dataPinMsg.style.color = "var(--red)";
+      dataPinMsg.textContent = "Clave incorrecta.";
+      dataPin.value = "";
+      return;
+    }
+    dataPin.value = "";
+    dataPinMsg.textContent = "";
+    importDataInput.click();
+  });
+
+  importDataInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!Array.isArray(data.history)) {
+          throw new Error("Formato inválido: falta 'history'.");
+        }
+        history = data.history;
+        playCounter = typeof data.playCounter === "number" ? data.playCounter : 0;
+        localStorage.setItem("ruleta_history", JSON.stringify(history));
+        localStorage.setItem("ruleta_playCounter", String(playCounter));
+        restoreFromHistory();
+        dataPinMsg.style.color = "var(--gold)";
+        dataPinMsg.textContent = `Trazabilidad importada: ${history.length} carga(s).`;
+      } catch (err) {
+        dataPinMsg.style.color = "var(--red)";
+        dataPinMsg.textContent = "No se pudo importar el archivo: " + err.message;
+      }
+    };
+    reader.readAsText(file);
+    importDataInput.value = ""; // permitir re-importar el mismo archivo
   });
 </script>
 
