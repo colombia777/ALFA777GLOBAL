@@ -521,8 +521,8 @@
      No afecta la vista normal en pantalla. */
   @media print {
     @page {
-      size: 15cm 14cm;
-      margin: 0.4cm;
+      size: 8.5in 11in;
+      margin: 0.3in;
     }
     body * { visibility: hidden; }
     #printArea, #printArea * { visibility: visible; }
@@ -530,9 +530,21 @@
       display: block !important;
       position: absolute;
       top: 0; left: 0; width: 100%;
+      max-height: 4.9in;
+      overflow: hidden;
       background: #fff;
       color: #000;
       font-family: Arial, Helvetica, sans-serif;
+    }
+    #printArea table td,
+    #printArea table th {
+      padding: 0.5mm 0.5mm !important;
+      font-size: 5px !important;
+      border: 0.3px solid #000 !important;
+      line-height: 1.1 !important;
+    }
+    #printArea div {
+      line-height: 1.2;
     }
   }
 
@@ -778,6 +790,16 @@
     <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
   </div>
   <div id="dataPinMsg" style="font-size:0.8rem; color:var(--red); margin-top:6px; min-height:1em;"></div>
+
+  <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
+    <button id="pdfHistoryBtn" style="flex:1;">Ver historial de PDFs</button>
+  </div>
+  <div id="pdfHistorySection" style="display:none; margin-top:10px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Historial de Trazabilidad de PDFs
+    </label>
+    <div id="pdfHistoryList"></div>
+  </div>
 </div>
 
 <script>
@@ -868,6 +890,9 @@
   const importDataInput = document.getElementById("importDataInput");
   const dataPin = document.getElementById("dataPin");
   const dataPinMsg = document.getElementById("dataPinMsg");
+  const pdfHistoryBtn = document.getElementById("pdfHistoryBtn");
+  const pdfHistorySection = document.getElementById("pdfHistorySection");
+  const pdfHistoryList = document.getElementById("pdfHistoryList");
   const quedadasPanel = document.getElementById("quedadasPanel");
   const quedadasBodega = document.getElementById("quedadasBodega");
   const machoManoBox = document.getElementById("machoManoBox");
@@ -1652,6 +1677,88 @@
   // Reorganiza, en formato compacto y fondo blanco, los datos ya
   // calculados por renderQuedadas() y renderReport(). No recalcula nada;
   // solo lee el HTML/datos ya generados y los presenta para imprimir.
+  // ── Historial de Trazabilidad de PDFs ───────────────────
+  // Cada vez que se exporta un PDF exitosamente, se guarda un registro
+  // (fecha, hora, jugada #, último # cargado, y una copia de history +
+  // playCounter de ESE momento) para poder reimprimir exactamente ese
+  // informe más adelante, sin afectar la trazabilidad actual en curso.
+  let pdfHistory = [];
+  try {
+    const savedPdfHist = localStorage.getItem("ruleta_pdfHistory");
+    if (savedPdfHist) pdfHistory = JSON.parse(savedPdfHist);
+  } catch (e) {
+    pdfHistory = [];
+  }
+
+  function savePdfHistoryEntry() {
+    const plays = history.filter(e => e.playNumber !== undefined);
+    const ultimaJugada = plays[0];
+    const now = new Date();
+    const entry = {
+      fecha: now.toLocaleDateString('es-CO'),
+      hora: now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+      playNumber: ultimaJugada ? ultimaJugada.playNumber : null,
+      ultimoNumero: ultimaJugada ? ultimaJugada.num : null,
+      historySnapshot: JSON.parse(JSON.stringify(history)),
+      playCounterSnapshot: playCounter
+    };
+    pdfHistory.unshift(entry); // más reciente primero (orden descendente)
+    localStorage.setItem("ruleta_pdfHistory", JSON.stringify(pdfHistory));
+    renderPdfHistory();
+  }
+
+  function renderPdfHistory() {
+    if (pdfHistory.length === 0) {
+      pdfHistoryList.innerHTML = '<span class="empty-msg">Aún no se ha exportado ningún PDF.</span>';
+      return;
+    }
+    let html = '';
+    pdfHistory.forEach((entry, idx) => {
+      html += `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #2a2d33;">`;
+      html += `<div style="font-size:0.78rem;">`;
+      html += `<div><strong>Jugada #${entry.playNumber ?? '—'}</strong> · Último #: ${entry.ultimoNumero ?? '—'}</div>`;
+      html += `<div style="color:var(--muted);">${entry.fecha} · ${entry.hora}</div>`;
+      html += `</div>`;
+      html += `<button class="pdf-reprint-btn" data-idx="${idx}" style="flex-shrink:0;">Reimprimir</button>`;
+      html += `</div>`;
+    });
+    pdfHistoryList.innerHTML = html;
+
+    pdfHistoryList.querySelectorAll(".pdf-reprint-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        const entry = pdfHistory[idx];
+        if (!entry) return;
+        renderPrintAreaFromSnapshot(entry.historySnapshot, entry.playCounterSnapshot);
+        try {
+          window.print();
+        } catch (e) {
+          dataPinMsg.style.color = "var(--red)";
+          dataPinMsg.textContent = "Reimprimir requiere abrir este archivo en un navegador (Chrome).";
+        }
+      });
+    });
+  }
+
+  pdfHistoryBtn.addEventListener("click", () => {
+    const isHidden = pdfHistorySection.style.display === "none";
+    pdfHistorySection.style.display = isHidden ? "block" : "none";
+    if (isHidden) renderPdfHistory();
+  });
+
+  // Reconstruye temporalmente toda la interfaz a partir de un snapshot
+  // histórico de `history`/`playCounter` (guardado en pdfHistory) para
+  // poder reimprimir ese informe exacto.
+  function renderPrintAreaFromSnapshot(snapshotHistory, snapshotPlayCounter) {
+    const realHistory = history;
+    const realPlayCounter = playCounter;
+    history = snapshotHistory;
+    playCounter = snapshotPlayCounter;
+    restoreFromHistory();
+    history = realHistory;
+    playCounter = realPlayCounter;
+  }
+
   function renderPrintArea() {
     const plays = history.filter(e => e.playNumber !== undefined);
     const ultimaJugada = plays[0];
@@ -1662,7 +1769,7 @@
     const horaStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
     const S = 'font-family:Arial,Helvetica,sans-serif; font-size:6px; color:#000;';
-    const BLK = 'border:1px solid #000; padding:3px; margin-bottom:3px;';
+    const BLK = 'border:0.5px solid #000; padding:1mm; margin-bottom:1mm;';
     const TTL = 'font-weight:bold; font-size:6.5px; margin-bottom:1px; text-transform:uppercase; color:#b3261e;';
     const ROW = 'display:flex; gap:8px; flex-wrap:wrap;';
 
@@ -1678,18 +1785,6 @@
       html += `<span><strong>Coords ganador:</strong> ${ultimaJugada.coords[0]}/${ultimaJugada.coords[1]}</span>`;
     }
     html += '</div>';
-
-    // ── Puntos Cardinales ──
-    if (cardinalsBtn.style.display !== "none") {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Puntos Cardinales (sobre penúltimo número)</div>`;
-      html += `<div style="${ROW}">`;
-      html += `<span>P1: <strong>${cvalP1.textContent}</strong></span>`;
-      html += `<span>P2: <strong>${cvalP2.textContent}</strong></span>`;
-      html += `<span>P3: <strong>${cvalP3.textContent}</strong></span>`;
-      html += `<span>P4: <strong>${cvalP4.textContent}</strong></span>`;
-      html += '</div></div>';
-    }
 
     // ── Módulo Macho · Coordenadas Quedadas ──
     if (result.active) {
@@ -1758,27 +1853,38 @@
     html += '</div>';
 
     // ── Coordenadas que no van a Módulo Macho ──
-    if (reportNoVanMacho.textContent.trim()) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
-      html += `<div>${reportNoVanMacho.textContent.trim()}</div>`;
-      html += '</div>';
+    {
+      const noVanTexto = reportNoVanMacho.textContent.replace('Coordenadas que no van a Módulo Macho', '').trim();
+      if (noVanTexto && noVanTexto !== '—') {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
+        html += `<div>${noVanTexto}</div>`;
+        html += '</div>';
+      }
     }
 
     // ── Jugada Potencial a Repetición de Coordenadas más Fuertes ──
-    if (reportFuertes.textContent.trim()) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
-      html += `<div style="white-space:pre-wrap;">${reportFuertes.textContent.trim()}</div>`;
-      html += '</div>';
+    {
+      const fuertesTexto = reportFuertes.textContent.replace('Jugada Potencial a Repetición de Coordenadas más Fuertes', '').trim();
+      if (fuertesTexto && fuertesTexto !== '—') {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
+        html += `<div style="white-space:pre-wrap;">${fuertesTexto}</div>`;
+        html += '</div>';
+      }
     }
 
     // ── Jugada Columnas 5 y 10 Coordenadas Iguales ──
-    if (reportC5C10Iguales.textContent.trim()) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
-      html += `<div>${reportC5C10Iguales.textContent.trim()}</div>`;
-      html += '</div>';
+    // Solo se muestra si REALMENTE hay coincidencia (no mostrar nada si
+    // el resultado es "—", para no sugerir falsamente que hay una jugada).
+    {
+      const c5c10Texto = reportC5C10Iguales.textContent.replace('Jugada Columnas 5 y 10 Coordenadas Iguales', '').trim();
+      if (c5c10Texto && c5c10Texto !== '—') {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
+        html += `<div>${c5c10Texto}</div>`;
+        html += '</div>';
+      }
     }
 
     // ── Potencial Liberación ──
@@ -2090,6 +2196,7 @@
     renderReport();
     if (!wasOpen) reportPanel.style.display = "none";
     renderPrintArea();
+    savePdfHistoryEntry();
     try {
       window.print();
     } catch (e) {
