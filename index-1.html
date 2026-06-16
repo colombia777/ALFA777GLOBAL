@@ -530,7 +530,7 @@
       display: block !important;
       position: absolute;
       top: 0; left: 0; width: 100%;
-      max-height: 4.9in;
+      max-height: 5.4in;
       overflow: hidden;
       background: #fff;
       color: #000;
@@ -539,7 +539,7 @@
     #printArea table td,
     #printArea table th {
       padding: 0.5mm 0.5mm !important;
-      font-size: 5px !important;
+      font-size: 10px !important;
       border: 0.3px solid #000 !important;
       line-height: 1.1 !important;
     }
@@ -1148,6 +1148,7 @@
       reportPanel.style.display = "none";
     }
     renderPrintArea();
+    savePdfHistoryEntry();
   }
 
   function renderHistory() {
@@ -1307,12 +1308,11 @@
       // Coordenadas faltantes, destacadas y solas
       fuertesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold); margin-bottom:10px;">${faltantes.join(", ")}</div>`;
 
-      // Mapear C1-C4 y C10-C12 -> dígitos presentes (apoyos de validez)
-      const c1c4Apoyo = new Set();
-      ordered.slice(0, 4).forEach(e => { c1c4Apoyo.add(e.coords[0]); c1c4Apoyo.add(e.coords[1]); });
-
-      const c10c12Apoyo = new Set();
-      ordered.slice(9, 12).forEach(e => { c10c12Apoyo.add(e.coords[0]); c10c12Apoyo.add(e.coords[1]); });
+      // Mapear cada columna individual (C1-C4, C10-C12) -> sus dos dígitos,
+      // para poder mostrar la columna exacta y si el apoyo es propio o de
+      // un hermano (según tabla FAMILIAS).
+      const colsCabeza = [1, 2, 3, 4].map(i => ({ col: i, coords: ordered[i - 1] ? [ordered[i - 1].coords[0], ordered[i - 1].coords[1]] : [] }));
+      const colsCola = [10, 11, 12].map(i => ({ col: i, coords: ordered[i - 1] ? [ordered[i - 1].coords[0], ordered[i - 1].coords[1]] : [] }));
 
       // Mapear C5 y C10 -> dígitos presentes (solo nota informativa)
       const c5c10Set = new Set();
@@ -1320,15 +1320,35 @@
       if (ordered[9]) { c5c10Set.add(ordered[9].coords[0]); c5c10Set.add(ordered[9].coords[1]); } // C10
 
       faltantes.forEach(d => {
-        const apoyo1 = c1c4Apoyo.has(d);
-        const apoyo2 = c10c12Apoyo.has(d);
+        const hermanos = FAMILIAS[d] || [];
+        // Para cada zona (cabeza/cola), busca todas las columnas donde
+        // aparece el dígito propio o alguno de sus hermanos.
+        function buscarApoyos(cols) {
+          const encontrados = [];
+          cols.forEach(({ col, coords }) => {
+            coords.forEach(c => {
+              if (c === d) encontrados.push({ col, digito: c, propio: true });
+              else if (hermanos.includes(c)) encontrados.push({ col, digito: c, propio: false });
+            });
+          });
+          return encontrados;
+        }
+        const apoyosCabeza = buscarApoyos(colsCabeza);
+        const apoyosCola = buscarApoyos(colsCola);
+        const apoyo1 = apoyosCabeza.length > 0;
+        const apoyo2 = apoyosCola.length > 0;
         const enC5C10 = c5c10Set.has(d);
         const fuerte = apoyo1 && apoyo2;
 
+        function listarApoyos(lista) {
+          if (lista.length === 0) return "no";
+          return lista.map(a => `${a.propio ? "propia" : `hermano ${a.digito}`} en C${a.col}`).join(", ");
+        }
+
         fuertesHtml += `<div style="margin-bottom:10px; padding:8px; border-left:3px solid ${fuerte ? "var(--gold)" : "#2a2d33"};">`;
         fuertesHtml += `<div style="font-weight:800; ${fuerte ? "color:var(--gold);" : ""} margin-bottom:4px;">Coordenada ${d}${fuerte ? " · Jugada fuerte" : ""}</div>`;
-        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C1-C4: ${apoyo1 ? "sí" : "no"}</div>`;
-        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C10-C12: ${apoyo2 ? "sí" : "no"}</div>`;
+        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C1-C4: ${listarApoyos(apoyosCabeza)}</div>`;
+        fuertesHtml += `<div style="margin-left:8px; font-size:0.8rem;">Apoyo en C10-C12: ${listarApoyos(apoyosCola)}</div>`;
         fuertesHtml += `<div style="margin-left:8px; font-size:0.75rem; color:var(--muted); margin-top:4px;">Nota: ${enC5C10 ? "está en C5/C10" : "no está en C5/C10"}</div>`;
         fuertesHtml += `</div>`;
       });
@@ -1421,6 +1441,11 @@
       });
     });
 
+    // Convierte "C1" -> "Columna 1" para texto legible
+    function colLarga(col) {
+      return col.replace(/^C/, "Columna ");
+    }
+
     const items = [];
 
     quedadas.bodega.forEach((nivel, digito) => {
@@ -1441,17 +1466,17 @@
         const lineas = [];
         if (apoyo1) {
           hermanosCabeza.forEach(h => {
-            cabezaCols[h].forEach(col => lineas.push(`Hermano ${h} en ${col}`));
+            cabezaCols[h].forEach(col => lineas.push(`Hm/no ${h} en ${colLarga(col)}`));
           });
         }
         if (apoyo2) {
           hermanosCola.forEach(h => {
-            colaCols[h].forEach(col => lineas.push(`Hermano ${h} en ${col}`));
+            colaCols[h].forEach(col => lineas.push(`Hm/no ${h} en ${colLarga(col)}`));
           });
         }
         if (apoyo3) {
           hermanosFreq.forEach(h => {
-            lineas.push(`Hermano ${h} (${freq[h]}x) en ${(todasCols[h] || []).join("/")}`);
+            lineas.push(`Hm/no ${h} (${freq[h]}x) en ${(todasCols[h] || []).map(colLarga).join("/")}`);
           });
         }
 
@@ -1702,6 +1727,13 @@
       historySnapshot: JSON.parse(JSON.stringify(history)),
       playCounterSnapshot: playCounter
     };
+    // Si ya existe un registro para esta misma jugada (por ejemplo, tras
+    // usar "Deshacer U/C" y volver a cargar), se reemplaza en vez de
+    // duplicarlo, manteniendo el orden descendente.
+    const idxExistente = pdfHistory.findIndex(e => e.playNumber === entry.playNumber);
+    if (idxExistente !== -1) {
+      pdfHistory.splice(idxExistente, 1);
+    }
     pdfHistory.unshift(entry); // más reciente primero (orden descendente)
     localStorage.setItem("ruleta_pdfHistory", JSON.stringify(pdfHistory));
     renderPdfHistory();
@@ -1768,9 +1800,9 @@
     const fechaStr = now.toLocaleDateString('es-CO');
     const horaStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
-    const S = 'font-family:Arial,Helvetica,sans-serif; font-size:6px; color:#000;';
+    const S = 'font-family:Arial,Helvetica,sans-serif; font-size:12px; color:#000;';
     const BLK = 'border:0.5px solid #000; padding:1mm; margin-bottom:1mm;';
-    const TTL = 'font-weight:bold; font-size:6.5px; margin-bottom:1px; text-transform:uppercase; color:#b3261e;';
+    const TTL = 'font-weight:bold; font-size:13px; margin-bottom:2px; text-transform:uppercase; color:#b3261e;';
     const ROW = 'display:flex; gap:8px; flex-wrap:wrap;';
 
     let html = `<div style="${S}">`;
@@ -1788,21 +1820,31 @@
 
     // ── Módulo Macho · Coordenadas Quedadas ──
     if (result.active) {
-      const enBodega = [];
-      result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodega.push(`${d}(${nivel})`); });
+      const enBodegaOrdenado = [];
+      result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodegaOrdenado.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
+      enBodegaOrdenado.sort((a, b) => a.entrada - b.entrada);
+      const CHIP = 'display:inline-block; border:0.5px solid #999; border-radius:2mm; padding:1mm 2mm; margin:0 1mm 1mm 0; text-align:center; min-width:8mm;';
       html += `<div style="${BLK}">`;
       html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
-      html += `<div>${enBodega.length > 0 ? enBodega.join(' · ') : 'Sin coordenadas quedadas'}</div>`;
+      if (enBodegaOrdenado.length > 0) {
+        html += `<div>`;
+        enBodegaOrdenado.forEach(item => {
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${item.digito}</div><div style="color:#b3261e; font-weight:800;">${item.nivel}</div></div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div>Sin coordenadas quedadas</div>`;
+      }
       html += '</div>';
 
       // ── Coordenadas Macho de la Mano ──
       const bodegaOrdenadaPrint = [];
-      result.bodega.forEach((nivel, d) => { if (nivel !== null) bodegaOrdenadaPrint.push({ digito: d, nivel }); });
-      bodegaOrdenadaPrint.sort((a, b) => a.nivel - b.nivel);
+      result.bodega.forEach((nivel, d) => { if (nivel !== null) bodegaOrdenadaPrint.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
+      bodegaOrdenadaPrint.sort((a, b) => a.entrada - b.entrada);
       if (bodegaOrdenadaPrint.length >= 2) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Coordenadas Macho de la Mano</div>`;
-        html += `<div style="${ROW}">`;
+        html += `<div>`;
         for (let i = 1; i < bodegaOrdenadaPrint.length; i++) {
           const grupo = bodegaOrdenadaPrint.slice(0, i + 1);
           const etiqueta = grupo.map(g => g.digito).join('');
@@ -1812,7 +1854,7 @@
             if (e !== null && e > entradaMax) entradaMax = e;
           });
           const conteo = -((result.totalGiros - 1 - entradaMax) + 1);
-          html += `<span><strong>${etiqueta}</strong>(${conteo})</span>`;
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${etiqueta}</div><div style="color:#b3261e; font-weight:800;">${conteo}</div></div>`;
         }
         html += '</div></div>';
       }
@@ -1827,10 +1869,11 @@
       html += '</div></div>';
 
       // ── Tendencia de Descansos · Bloques de 10 jugadas ──
+      // Solo se muestran los 2 bloques más recientes en el PDF.
       if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
-        result.bloquesDescanso.forEach(b => {
+        result.bloquesDescanso.slice(-2).reverse().forEach(b => {
           html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
         });
         html += '</div>';
@@ -1840,13 +1883,13 @@
     // ── Últimos 12 giros ──
     html += `<div style="${BLK}">`;
     html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
-    html += `<table style="border-collapse:collapse; width:100%; font-size:5.5px; text-align:center;">${reportTable.innerHTML}</table>`;
+    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
     html += '</div>';
 
     // ── Orden Repetición Coordenadas ──
     html += `<div style="${BLK}">`;
     html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
-    html += `<table style="border-collapse:collapse; width:100%; font-size:5.5px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
+    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
     if (reportDescansoAlert.textContent.trim()) {
       html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
     }
@@ -1911,18 +1954,18 @@
       return;
     }
 
-    // Bodega: mostrar solo los dígitos actualmente "quedados"
-    const bodegaItems = [];
-    const bodegaOrdenada = []; // [{digito, nivel}], ordenado de más quedado (más negativo) a menos
+    // Bodega: mostrar solo los dígitos actualmente "quedados", ordenados
+    // de más antiguo (izquierda) a más reciente (derecha) según el giro
+    // en que cada uno entró a bodega.
+    const bodegaOrdenada = []; // [{digito, nivel}]
     result.bodega.forEach((nivel, digit) => {
       if (nivel !== null) {
-        bodegaItems.push(`<div class="quedada-chip"><div class="digit">${digit}</div><div class="count">${nivel}</div></div>`);
-        bodegaOrdenada.push({ digito: digit, nivel });
+        bodegaOrdenada.push({ digito: digit, nivel, entrada: result.bodegaEntradaGiro[digit] });
       }
     });
-    bodegaOrdenada.sort((a, b) => a.nivel - b.nivel); // más negativo primero (más quedado)
-    quedadasBodega.innerHTML = bodegaItems.length > 0
-      ? bodegaItems.join("")
+    bodegaOrdenada.sort((a, b) => a.entrada - b.entrada); // más antiguo (giro menor) primero
+    quedadasBodega.innerHTML = bodegaOrdenada.length > 0
+      ? bodegaOrdenada.map(item => `<div class="quedada-chip"><div class="digit">${item.digito}</div><div class="count">${item.nivel}</div></div>`).join("")
       : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
 
     // ── Coordenadas Macho de la Mano ────────────────────────
@@ -1986,7 +2029,7 @@
     // Tendencia de Descansos por bloques de 10 jugadas (en su propio bloque colapsable)
     if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
       let bloquesHtml = `<div style="font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Tendencia de Descansos · bloques de 10 jugadas</div>`;
-      result.bloquesDescanso.forEach(b => {
+      [...result.bloquesDescanso].reverse().forEach(b => {
         bloquesHtml += `<div>Cuántos descansos van de la jugada #${b.inicio} hasta la #${b.fin} = ${b.conteo}${b.completo ? "" : " (en curso)"}</div>`;
       });
       tendenciaContent.innerHTML = bloquesHtml;
@@ -2196,7 +2239,6 @@
     renderReport();
     if (!wasOpen) reportPanel.style.display = "none";
     renderPrintArea();
-    savePdfHistoryEntry();
     try {
       window.print();
     } catch (e) {
