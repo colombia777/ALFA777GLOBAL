@@ -2268,6 +2268,16 @@
     if (removed.playNumber !== undefined) {
       playCounter = Math.max(0, playCounter - 1);
       localStorage.setItem("ruleta_playCounter", String(playCounter));
+
+      // Eliminar también el PDF de trazabilidad generado con ese número
+      // erróneo, ya que un PDF basado en una jugada deshecha no es válido
+      // para trazabilidad.
+      const idxPdf = pdfHistory.findIndex(e => e.playNumber === removed.playNumber);
+      if (idxPdf !== -1) {
+        pdfHistory.splice(idxPdf, 1);
+        localStorage.setItem("ruleta_pdfHistory", JSON.stringify(pdfHistory));
+        renderPdfHistory();
+      }
     }
 
     localStorage.setItem("ruleta_history", JSON.stringify(history));
