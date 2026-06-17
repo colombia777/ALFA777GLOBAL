@@ -1916,51 +1916,96 @@
       html += '</div>';
     }
 
-    // ── Fila 2: Últimos 12 Giros | Rachas · Módulo Macho ──
-    html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+    // ── Fila 2: Últimos 12 Giros | (Rachas + Coordenadas que no van, apiladas) ──
+    {
+      const noVanTexto2 = reportNoVanMacho.textContent.replace('Coordenadas que no van a Módulo Macho', '').trim();
+      const hayNoVan2 = noVanTexto2 && noVanTexto2 !== '—';
 
-    html += `<div style="${BLK} flex:1;">`;
-    html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
-    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
-    html += '</div>';
+      html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
 
-    if (result.active) {
       html += `<div style="${BLK} flex:1;">`;
-      html += `<div style="${TTL}">Rachas · Módulo Macho</div>`;
-      html += `<div style="${ROW}">`;
-      html += `<span>Cargado: <strong>${result.rachaCargado > 0 ? '+' : ''}${result.rachaCargado}</strong></span>`;
-      html += `<span>Liberado: <strong>${result.rachaLiberado > 0 ? '+' : ''}${result.rachaLiberado}</strong></span>`;
-      html += `<span>Descanso: <strong>${result.rachaDescanso > 0 ? '+' : ''}${result.rachaDescanso}</strong></span>`;
-      html += '</div></div>';
-    } else {
-      html += `<div style="${BLK} flex:1;"></div>`;
+      html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
+      html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
+      html += '</div>';
+
+      html += `<div style="flex:1; display:flex; flex-direction:column; gap:1mm;">`;
+      if (result.active) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Rachas · Módulo Macho</div>`;
+        html += `<div style="${ROW}">`;
+        html += `<span>Cargado: <strong>${result.rachaCargado > 0 ? '+' : ''}${result.rachaCargado}</strong></span>`;
+        html += `<span>Liberado: <strong>${result.rachaLiberado > 0 ? '+' : ''}${result.rachaLiberado}</strong></span>`;
+        html += `<span>Descanso: <strong>${result.rachaDescanso > 0 ? '+' : ''}${result.rachaDescanso}</strong></span>`;
+        html += '</div></div>';
+      }
+      if (hayNoVan2) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
+        html += `<div>${noVanTexto2}</div>`;
+        html += '</div>';
+      }
+      html += '</div>';
+
+      html += '</div>';
     }
 
-    html += '</div>';
-
-    // ── Fila 3: Jugada Potencial a Repetición | Coordenadas que no van a Módulo Macho ──
+    // ── Fila 3: Jugada Potencial a Repetición | Orden Repetición Coordenadas ──
     {
       const fuertesTexto = reportFuertes.textContent.replace('Jugada Potencial a Repetición de Coordenadas más Fuertes', '').trim();
-      const noVanTexto = reportNoVanMacho.textContent.replace('Coordenadas que no van a Módulo Macho', '').trim();
       const hayFuertes = fuertesTexto && fuertesTexto !== '—';
-      const hayNoVan = noVanTexto && noVanTexto !== '—';
 
-      if (hayFuertes || hayNoVan) {
+      html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+
+      if (hayFuertes) {
+        html += `<div style="${BLK} flex:1;">`;
+        html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
+        const fuertesFirstDiv = reportFuertes.querySelector('div');
+        const fuertesDestacado = fuertesFirstDiv ? fuertesFirstDiv.textContent.trim() : '';
+        if (fuertesDestacado) {
+          html += `<div style="font-size:22px; font-weight:800; color:#b3261e; margin-bottom:3mm;">${fuertesDestacado}</div>`;
+        }
+        const fuertesResto = fuertesDestacado ? fuertesTexto.replace(fuertesDestacado, '').trim() : fuertesTexto;
+        html += `<div style="white-space:pre-wrap; line-height:1.6;">${fuertesResto}</div>`;
+        html += '</div>';
+      } else {
+        html += `<div style="${BLK} flex:1;"></div>`;
+      }
+
+      html += `<div style="${BLK} flex:1;">`;
+      html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
+      html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
+      if (reportDescansoAlert.textContent.trim()) {
+        html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
+      }
+      html += '</div>';
+
+      html += '</div>';
+    }
+
+    // ── Fila 4: Tendencia de Descansos | Jugada Columnas 5 y 10 Coordenadas Iguales ──
+    {
+      const hayTendencia = result.active && result.bloquesDescanso && result.bloquesDescanso.length > 0;
+      const c5c10Texto = reportC5C10Iguales.textContent.replace('Jugada Columnas 5 y 10 Coordenadas Iguales', '').trim();
+      const hayC5C10 = c5c10Texto && c5c10Texto !== '—';
+
+      if (hayTendencia || hayC5C10) {
         html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
 
-        if (hayFuertes) {
+        if (hayTendencia) {
           html += `<div style="${BLK} flex:1;">`;
-          html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
-          html += `<div style="white-space:pre-wrap;">${fuertesTexto}</div>`;
+          html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
+          result.bloquesDescanso.slice(-2).reverse().forEach(b => {
+            html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
+          });
           html += '</div>';
         } else {
           html += `<div style="${BLK} flex:1;"></div>`;
         }
 
-        if (hayNoVan) {
+        if (hayC5C10) {
           html += `<div style="${BLK} flex:1;">`;
-          html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
-          html += `<div>${noVanTexto}</div>`;
+          html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
+          html += `<div>${c5c10Texto}</div>`;
           html += '</div>';
         } else {
           html += `<div style="${BLK} flex:1;"></div>`;
@@ -1970,52 +2015,32 @@
       }
     }
 
-    // ── Orden Repetición Coordenadas (ancho completo) ──
-    html += `<div style="${BLK}">`;
-    html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
-    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
-    if (reportDescansoAlert.textContent.trim()) {
-      html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
-    }
-    html += '</div>';
-
-    // ── Tendencia de Descansos (ancho completo) ──
-    if (result.active && result.bloquesDescanso && result.bloquesDescanso.length > 0) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
-      result.bloquesDescanso.slice(-2).reverse().forEach(b => {
-        html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
-      });
-      html += '</div>';
-    }
-
-    // ── Jugada Columnas 5 y 10 Coordenadas Iguales ──
-    // Solo se muestra si REALMENTE hay coincidencia (no mostrar nada si
-    // el resultado es "—", para no sugerir falsamente que hay una jugada).
+    // ── Fila 5: Potencial Liberación | Alertas en texto = Peligros ──
     {
-      const c5c10Texto = reportC5C10Iguales.textContent.replace('Jugada Columnas 5 y 10 Coordenadas Iguales', '').trim();
-      if (c5c10Texto && c5c10Texto !== '—') {
-        html += `<div style="${BLK}">`;
-        html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
-        html += `<div>${c5c10Texto}</div>`;
+      const liberacionTexto = liberacionContent.textContent.trim();
+      const alertasTexto = alertasPeligrosContent.textContent.trim();
+      const hayLiberacion = !!liberacionTexto;
+      const hayAlertas = !!alertasTexto;
+
+      if (hayLiberacion || hayAlertas) {
+        html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+
+        if (hayLiberacion) {
+          html += `<div style="${BLK} flex:1;">`;
+          html += `<div style="${TTL}">Potencial Liberación</div>`;
+          html += `<div style="white-space:pre-wrap;">${liberacionTexto}</div>`;
+          html += '</div>';
+        }
+
+        if (hayAlertas) {
+          html += `<div style="${BLK} flex:1;">`;
+          html += `<div style="${TTL}">Alertas en texto = Peligros</div>`;
+          html += `<div style="font-weight:bold;">${alertasTexto}</div>`;
+          html += '</div>';
+        }
+
         html += '</div>';
       }
-    }
-
-    // ── Potencial Liberación ──
-    if (liberacionContent.textContent.trim()) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Potencial Liberación</div>`;
-      html += `<div style="white-space:pre-wrap;">${liberacionContent.textContent.trim()}</div>`;
-      html += '</div>';
-    }
-
-    // ── Alertas en texto = Peligros ──
-    if (alertasPeligrosContent.textContent.trim()) {
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Alertas en texto = Peligros</div>`;
-      html += `<div>${alertasPeligrosContent.textContent.trim()}</div>`;
-      html += '</div>';
     }
 
     html += '</div>';
