@@ -2015,30 +2015,28 @@
       }
     }
 
-    // ── Fila 5: Potencial Liberación | Alertas en texto = Peligros ──
+    // ── Fila 5: Potencial Liberación (ancho completo) ──
     {
       const liberacionHtml = liberacionContent.innerHTML.trim();
-      const alertasTexto = alertasPeligrosContent.textContent.trim();
       const hayLiberacion = !!liberacionContent.textContent.trim();
+
+      if (hayLiberacion) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Potencial Liberación</div>`;
+        html += `<div style="font-size:10px; line-height:1.4;">${liberacionHtml}</div>`;
+        html += '</div>';
+      }
+    }
+
+    // ── Fila 6: Alertas en texto = Peligros (ancho completo) ──
+    {
+      const alertasTexto = alertasPeligrosContent.textContent.trim();
       const hayAlertas = !!alertasTexto;
 
-      if (hayLiberacion || hayAlertas) {
-        html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
-
-        if (hayLiberacion) {
-          html += `<div style="${BLK} flex:1;">`;
-          html += `<div style="${TTL}">Potencial Liberación</div>`;
-          html += `<div style="font-size:10px; line-height:1.4;">${liberacionHtml}</div>`;
-          html += '</div>';
-        }
-
-        if (hayAlertas) {
-          html += `<div style="${BLK} flex:1;">`;
-          html += `<div style="${TTL}">Alertas en texto = Peligros</div>`;
-          html += `<div style="font-weight:bold;">${alertasTexto}</div>`;
-          html += '</div>';
-        }
-
+      if (hayAlertas) {
+        html += `<div style="${BLK}">`;
+        html += `<div style="${TTL}">Alertas en texto = Peligros</div>`;
+        html += `<div style="font-weight:bold;">${alertasTexto}</div>`;
         html += '</div>';
       }
     }
