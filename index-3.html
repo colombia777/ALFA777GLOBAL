@@ -546,6 +546,14 @@
     #printArea div {
       line-height: 1.2;
     }
+    #printArea .col-highlight {
+      background: #f5d020 !important;
+      color: #000 !important;
+    }
+    #printArea .cell-num {
+      color: #b3261e !important;
+      font-weight: 800 !important;
+    }
   }
 
   /* ---- MÓDULO MACHO · COORDENADAS QUEDADAS ---- */
@@ -776,6 +784,13 @@
     <div style="font-size:0.75rem;" id="liberacionContent"></div>
   </div>
 
+  <div id="alertasPeligrosPanel" class="section-box" style="display:none; margin-top:14px; border-color:var(--red);">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:8px;">
+      Alertas en texto = Peligros
+    </label>
+    <div style="font-size:0.75rem;" id="alertasPeligrosContent"></div>
+  </div>
+
   <div id="printArea" style="display:none;"></div>
 
   <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
@@ -904,6 +919,8 @@
   const tendenciaContent = document.getElementById("tendenciaContent");
   const liberacionPanel = document.getElementById("liberacionPanel");
   const liberacionContent = document.getElementById("liberacionContent");
+  const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
+  const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
   const total = SEQUENCE.length;
   const anglePerPocket = 360 / total;
@@ -1727,6 +1744,13 @@
       historySnapshot: JSON.parse(JSON.stringify(history)),
       playCounterSnapshot: playCounter
     };
+    // Si ya existe un registro para esta misma jugada (por ejemplo, tras
+    // usar "Deshacer U/C" y volver a cargar), se reemplaza en vez de
+    // duplicarlo, manteniendo el orden descendente.
+    const idxExistente = pdfHistory.findIndex(e => e.playNumber === entry.playNumber);
+    if (idxExistente !== -1) {
+      pdfHistory.splice(idxExistente, 1);
+    }
     pdfHistory.unshift(entry); // más reciente primero (orden descendente)
     localStorage.setItem("ruleta_pdfHistory", JSON.stringify(pdfHistory));
     renderPdfHistory();
@@ -1816,10 +1840,18 @@
       const enBodegaOrdenado = [];
       result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodegaOrdenado.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
       enBodegaOrdenado.sort((a, b) => a.entrada - b.entrada);
-      const enBodega = enBodegaOrdenado.map(item => `${item.digito}(${item.nivel})`);
+      const CHIP = 'display:inline-block; border:0.5px solid #999; border-radius:2mm; padding:1mm 2mm; margin:0 1mm 1mm 0; text-align:center; min-width:8mm;';
       html += `<div style="${BLK}">`;
       html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
-      html += `<div>${enBodega.length > 0 ? enBodega.join(' · ') : 'Sin coordenadas quedadas'}</div>`;
+      if (enBodegaOrdenado.length > 0) {
+        html += `<div>`;
+        enBodegaOrdenado.forEach(item => {
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${item.digito}</div><div style="color:#b3261e; font-weight:800;">${item.nivel}</div></div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div>Sin coordenadas quedadas</div>`;
+      }
       html += '</div>';
 
       // ── Coordenadas Macho de la Mano ──
@@ -1829,7 +1861,7 @@
       if (bodegaOrdenadaPrint.length >= 2) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Coordenadas Macho de la Mano</div>`;
-        html += `<div style="${ROW}">`;
+        html += `<div>`;
         for (let i = 1; i < bodegaOrdenadaPrint.length; i++) {
           const grupo = bodegaOrdenadaPrint.slice(0, i + 1);
           const etiqueta = grupo.map(g => g.digito).join('');
@@ -1839,7 +1871,7 @@
             if (e !== null && e > entradaMax) entradaMax = e;
           });
           const conteo = -((result.totalGiros - 1 - entradaMax) + 1);
-          html += `<span><strong>${etiqueta}</strong>(${conteo})</span>`;
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${etiqueta}</div><div style="color:#b3261e; font-weight:800;">${conteo}</div></div>`;
         }
         html += '</div></div>';
       }
@@ -1854,10 +1886,11 @@
       html += '</div></div>';
 
       // ── Tendencia de Descansos · Bloques de 10 jugadas ──
+      // Solo se muestran los 2 bloques más recientes en el PDF.
       if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
-        result.bloquesDescanso.forEach(b => {
+        result.bloquesDescanso.slice(-2).reverse().forEach(b => {
           html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
         });
         html += '</div>';
@@ -1922,10 +1955,45 @@
       html += '</div>';
     }
 
+    // ── Alertas en texto = Peligros ──
+    if (alertasPeligrosContent.textContent.trim()) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Alertas en texto = Peligros</div>`;
+      html += `<div>${alertasPeligrosContent.textContent.trim()}</div>`;
+      html += '</div>';
+    }
+
     html += '</div>';
     printArea.innerHTML = html;
   }
 
+
+  // ── Alertas en texto = Peligros ─────────────────────────
+  // Recopila en un solo bloque dedicado todas las alertas de texto que
+  // antes aparecían sueltas debajo de distintas secciones, para que el
+  // humano siempre las encuentre en un único lugar fácil de revisar.
+  function renderAlertasPeligros(result) {
+    const alertas = [];
+    if (result && result.alerta5 === 'sola') {
+      alertas.push('⚠ Coordenada 5 se subió sola: cuando se libere, será en largas (5/5).');
+    } else if (result && result.alerta5 === 'con4') {
+      alertas.push('⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).');
+    }
+
+    // Alerta: el mismo número ganador se repitió en las 2 jugadas más
+    // recientes (ej. #37 = 1, #38 = 1).
+    if (history.length >= 2 && history[0].num === history[1].num) {
+      alertas.push('⚠ Alerta 2 números repetidos en últimas 2 jugadas: tener precaución.');
+    }
+
+    if (alertas.length > 0) {
+      alertasPeligrosContent.innerHTML = alertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join('');
+      alertasPeligrosPanel.style.display = "block";
+    } else {
+      alertasPeligrosContent.innerHTML = "";
+      alertasPeligrosPanel.style.display = "none";
+    }
+  }
 
   function renderQuedadas() {
     const result = computeQuedadas();
@@ -1934,6 +2002,7 @@
       quedadasBodega.innerHTML = `<span class="empty-msg">Módulo Macho inactivo: faltan ${result.needed} jugada(s) para alcanzar el mínimo de 20.</span>`;
       quedadasRachas.innerHTML = "";
       quedadasDescanso.innerHTML = "";
+      renderAlertasPeligros(null);
       quedadasPanel.style.display = "block";
       return;
     }
@@ -2003,17 +2072,14 @@
 
     quedadasDescanso.innerHTML = `Repetición ventana 10 giros: ${result.descansoPct}% (seguimiento, sin umbral aún)`;
 
-    // Alerta especial coordenada 5
-    if (result.alerta5 === 'sola') {
-      quedadasDescanso.innerHTML += `<div style="margin-top:6px; color:var(--gold);">⚠ Coordenada 5 se subió sola: cuando se libere, será en largas (5/5).</div>`;
-    } else if (result.alerta5 === 'con4') {
-      quedadasDescanso.innerHTML += `<div style="margin-top:6px; color:var(--gold);">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).</div>`;
-    }
+    // La alerta especial de coordenada 5 se muestra en su propia sección
+    // dedicada "ALERTAS EN TEXTO = PELIGROS" (ver renderAlertasPeligros).
+    renderAlertasPeligros(result);
 
     // Tendencia de Descansos por bloques de 10 jugadas (en su propio bloque colapsable)
     if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
       let bloquesHtml = `<div style="font-size:0.7rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Tendencia de Descansos · bloques de 10 jugadas</div>`;
-      result.bloquesDescanso.forEach(b => {
+      [...result.bloquesDescanso].reverse().forEach(b => {
         bloquesHtml += `<div>Cuántos descansos van de la jugada #${b.inicio} hasta la #${b.fin} = ${b.conteo}${b.completo ? "" : " (en curso)"}</div>`;
       });
       tendenciaContent.innerHTML = bloquesHtml;
