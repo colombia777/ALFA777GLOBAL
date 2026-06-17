@@ -1873,25 +1873,15 @@
       result.bodega.forEach((nivel, d) => { if (nivel !== null) enBodegaOrdenado.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
       enBodegaOrdenado.sort((a, b) => a.entrada - b.entrada);
       const CHIP = 'display:inline-block; border:0.5px solid #999; border-radius:2mm; padding:1mm 2mm; margin:0 1mm 1mm 0; text-align:center; min-width:8mm;';
-      html += `<div style="${BLK}">`;
-      html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
-      if (enBodegaOrdenado.length > 0) {
-        html += `<div>`;
-        enBodegaOrdenado.forEach(item => {
-          html += `<div style="${CHIP}"><div style="font-weight:800;">${item.digito}</div><div style="color:#b3261e; font-weight:800;">${item.nivel}</div></div>`;
-        });
-        html += `</div>`;
-      } else {
-        html += `<div>Sin coordenadas quedadas</div>`;
-      }
-      html += '</div>';
 
-      // ── Coordenadas Macho de la Mano ──
+      // ── Fila 1: Coordenadas Macho de la Mano | Módulo Macho Quedadas ──
+      html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+
       const bodegaOrdenadaPrint = [];
       result.bodega.forEach((nivel, d) => { if (nivel !== null) bodegaOrdenadaPrint.push({ digito: d, nivel, entrada: result.bodegaEntradaGiro[d] }); });
       bodegaOrdenadaPrint.sort((a, b) => a.entrada - b.entrada);
       if (bodegaOrdenadaPrint.length >= 2) {
-        html += `<div style="${BLK}">`;
+        html += `<div style="${BLK} flex:1;">`;
         html += `<div style="${TTL}">Coordenadas Macho de la Mano</div>`;
         html += `<div>`;
         for (let i = 1; i < bodegaOrdenadaPrint.length; i++) {
@@ -1906,36 +1896,81 @@
           html += `<div style="${CHIP}"><div style="font-weight:800;">${etiqueta}</div><div style="color:#b3261e; font-weight:800;">${conteo}</div></div>`;
         }
         html += '</div></div>';
+      } else {
+        html += `<div style="${BLK} flex:1;"></div>`;
       }
 
-      // ── Cargado · Liberado · Descanso ──
-      html += `<div style="${BLK}">`;
+      html += `<div style="${BLK} flex:1;">`;
+      html += `<div style="${TTL}">Módulo Macho · Coordenadas Quedadas</div>`;
+      if (enBodegaOrdenado.length > 0) {
+        html += `<div>`;
+        enBodegaOrdenado.forEach(item => {
+          html += `<div style="${CHIP}"><div style="font-weight:800;">${item.digito}</div><div style="color:#b3261e; font-weight:800;">${item.nivel}</div></div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div>Sin coordenadas quedadas</div>`;
+      }
+      html += '</div>';
+
+      html += '</div>';
+    }
+
+    // ── Fila 2: Últimos 12 Giros | Rachas · Módulo Macho ──
+    html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+
+    html += `<div style="${BLK} flex:1;">`;
+    html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
+    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
+    html += '</div>';
+
+    if (result.active) {
+      html += `<div style="${BLK} flex:1;">`;
       html += `<div style="${TTL}">Rachas · Módulo Macho</div>`;
       html += `<div style="${ROW}">`;
       html += `<span>Cargado: <strong>${result.rachaCargado > 0 ? '+' : ''}${result.rachaCargado}</strong></span>`;
       html += `<span>Liberado: <strong>${result.rachaLiberado > 0 ? '+' : ''}${result.rachaLiberado}</strong></span>`;
       html += `<span>Descanso: <strong>${result.rachaDescanso > 0 ? '+' : ''}${result.rachaDescanso}</strong></span>`;
       html += '</div></div>';
+    } else {
+      html += `<div style="${BLK} flex:1;"></div>`;
+    }
 
-      // ── Tendencia de Descansos · Bloques de 10 jugadas ──
-      // Solo se muestran los 2 bloques más recientes en el PDF.
-      if (result.bloquesDescanso && result.bloquesDescanso.length > 0) {
-        html += `<div style="${BLK}">`;
-        html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
-        result.bloquesDescanso.slice(-2).reverse().forEach(b => {
-          html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
-        });
+    html += '</div>';
+
+    // ── Fila 3: Jugada Potencial a Repetición | Coordenadas que no van a Módulo Macho ──
+    {
+      const fuertesTexto = reportFuertes.textContent.replace('Jugada Potencial a Repetición de Coordenadas más Fuertes', '').trim();
+      const noVanTexto = reportNoVanMacho.textContent.replace('Coordenadas que no van a Módulo Macho', '').trim();
+      const hayFuertes = fuertesTexto && fuertesTexto !== '—';
+      const hayNoVan = noVanTexto && noVanTexto !== '—';
+
+      if (hayFuertes || hayNoVan) {
+        html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
+
+        if (hayFuertes) {
+          html += `<div style="${BLK} flex:1;">`;
+          html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
+          html += `<div style="white-space:pre-wrap;">${fuertesTexto}</div>`;
+          html += '</div>';
+        } else {
+          html += `<div style="${BLK} flex:1;"></div>`;
+        }
+
+        if (hayNoVan) {
+          html += `<div style="${BLK} flex:1;">`;
+          html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
+          html += `<div>${noVanTexto}</div>`;
+          html += '</div>';
+        } else {
+          html += `<div style="${BLK} flex:1;"></div>`;
+        }
+
         html += '</div>';
       }
     }
 
-    // ── Últimos 12 giros ──
-    html += `<div style="${BLK}">`;
-    html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
-    html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
-    html += '</div>';
-
-    // ── Orden Repetición Coordenadas ──
+    // ── Orden Repetición Coordenadas (ancho completo) ──
     html += `<div style="${BLK}">`;
     html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
     html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
@@ -1944,26 +1979,14 @@
     }
     html += '</div>';
 
-    // ── Coordenadas que no van a Módulo Macho ──
-    {
-      const noVanTexto = reportNoVanMacho.textContent.replace('Coordenadas que no van a Módulo Macho', '').trim();
-      if (noVanTexto && noVanTexto !== '—') {
-        html += `<div style="${BLK}">`;
-        html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
-        html += `<div>${noVanTexto}</div>`;
-        html += '</div>';
-      }
-    }
-
-    // ── Jugada Potencial a Repetición de Coordenadas más Fuertes ──
-    {
-      const fuertesTexto = reportFuertes.textContent.replace('Jugada Potencial a Repetición de Coordenadas más Fuertes', '').trim();
-      if (fuertesTexto && fuertesTexto !== '—') {
-        html += `<div style="${BLK}">`;
-        html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
-        html += `<div style="white-space:pre-wrap;">${fuertesTexto}</div>`;
-        html += '</div>';
-      }
+    // ── Tendencia de Descansos (ancho completo) ──
+    if (result.active && result.bloquesDescanso && result.bloquesDescanso.length > 0) {
+      html += `<div style="${BLK}">`;
+      html += `<div style="${TTL}">Tendencia de Descansos · Bloques de 10 jugadas</div>`;
+      result.bloquesDescanso.slice(-2).reverse().forEach(b => {
+        html += `<div>Jugadas #${b.inicio}-#${b.fin}: ${b.conteo} descanso(s)${b.completo ? '' : ' (en curso)'}</div>`;
+      });
+      html += '</div>';
     }
 
     // ── Jugada Columnas 5 y 10 Coordenadas Iguales ──
