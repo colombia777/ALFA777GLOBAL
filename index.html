@@ -794,6 +794,24 @@
     <div style="font-size:0.75rem;" id="alertasPeligrosContent"></div>
   </div>
 
+  <div id="hipotesisPanel" class="section-box" style="display:block; margin-top:14px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Hipótesis #1 / Hipótesis #2
+    </label>
+    <div id="hipotesis1Box" style="margin-bottom:10px;">
+      <label style="display:block;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;">
+        Hipótesis #1
+      </label>
+      <div style="font-size:0.8rem; color:var(--muted);" id="hipotesis1Content">🏗️ En construcción</div>
+    </div>
+    <div id="hipotesis2Box">
+      <label style="display:block;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;">
+        Hipótesis #2
+      </label>
+      <div style="font-size:0.8rem; color:var(--muted);" id="hipotesis2Content">🏗️ En construcción</div>
+    </div>
+  </div>
+
   <div id="potencialesPanel" class="section-box" style="display:block; margin-top:14px;">
     <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
       Coordenadas Potenciales
@@ -804,15 +822,15 @@
   <div id="printArea" style="display:none;"></div>
 
   <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
+    <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
+  </div>
+  <div class="undo-row" style="margin-top:6px;">
     <input type="password" id="dataPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem;">
   </div>
   <div class="undo-row">
     <button id="exportDataBtn" style="flex:1;">Exportar trazabilidad</button>
     <button id="importDataBtn" style="flex:1;">Importar trazabilidad</button>
     <input type="file" id="importDataInput" accept="application/json" style="display:none;">
-  </div>
-  <div class="undo-row" style="margin-top:6px;">
-    <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
   </div>
   <div id="dataPinMsg" style="font-size:0.8rem; color:var(--red); margin-top:6px; min-height:1em;"></div>
 
