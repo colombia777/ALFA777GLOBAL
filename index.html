@@ -2017,9 +2017,9 @@
 
     // ── Fila 5: Potencial Liberación | Alertas en texto = Peligros ──
     {
-      const liberacionTexto = liberacionContent.textContent.trim();
+      const liberacionHtml = liberacionContent.innerHTML.trim();
       const alertasTexto = alertasPeligrosContent.textContent.trim();
-      const hayLiberacion = !!liberacionTexto;
+      const hayLiberacion = !!liberacionContent.textContent.trim();
       const hayAlertas = !!alertasTexto;
 
       if (hayLiberacion || hayAlertas) {
@@ -2028,7 +2028,7 @@
         if (hayLiberacion) {
           html += `<div style="${BLK} flex:1;">`;
           html += `<div style="${TTL}">Potencial Liberación</div>`;
-          html += `<div style="white-space:pre-wrap;">${liberacionTexto}</div>`;
+          html += `<div style="font-size:10px; line-height:1.4;">${liberacionHtml}</div>`;
           html += '</div>';
         }
 
