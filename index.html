@@ -2024,7 +2024,10 @@
         html += `<div style="${TTL}">Frecuencia relativa observada</div>`;
         html += `<div style="display:flex; gap:3mm; align-items:flex-start; font-size:10px; line-height:1.4;">`;
         Array.from(liberacionContent.children).forEach(coordDiv => {
-          html += `<div style="flex:1; min-width:0;">${coordDiv.innerHTML}</div>`;
+          const hijos = Array.from(coordDiv.children);
+          const titulo = hijos[0] ? hijos[0].outerHTML : "";
+          const resto = hijos.slice(1).map(d => d.textContent).join(" / ");
+          html += `<div style="flex:1; min-width:0;">${titulo}<div style="margin-left:10px;">${resto}</div></div>`;
         });
         html += '</div>';
         html += '</div>';
