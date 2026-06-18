@@ -2194,6 +2194,9 @@
     localStorage.removeItem("ruleta_history");
     playCounter = 0;
     localStorage.removeItem("ruleta_playCounter");
+    pdfHistory = [];
+    localStorage.removeItem("ruleta_pdfHistory");
+    renderPdfHistory();
     playsHistorySection.style.display = "none";
     currentRotation = 0;
     pointer.style.transform = "rotate(0deg)";
