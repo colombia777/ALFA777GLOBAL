@@ -1391,7 +1391,7 @@
 
         function listarApoyos(lista) {
           if (lista.length === 0) return "no";
-          return lista.map(a => `${a.propio ? "propia" : `hermano ${a.digito}`} en C${a.col}`).join(", ");
+          return lista.map(a => `${a.propio ? "propia" : `Hno ${a.digito}`} en C- ${a.col}`).join(", ");
         }
 
         fuertesHtml += `<div style="margin-bottom:10px; padding:8px; border-left:3px solid ${fuerte ? "var(--gold)" : "#2a2d33"};">`;
@@ -1490,9 +1490,9 @@
       });
     });
 
-    // Convierte "C1" -> "C/na 1" para texto legible
+    // Convierte "C1" -> "C- 1" para texto legible
     function colLarga(col) {
-      return col.replace(/^C/, "C/na ");
+      return col.replace(/^C/, "C- ");
     }
 
     const items = [];
@@ -1515,21 +1515,21 @@
         const lineas = [];
         if (apoyo1) {
           hermanosCabeza.forEach(h => {
-            cabezaCols[h].forEach(col => lineas.push(`Hm/no ${h} en ${colLarga(col)}`));
+            cabezaCols[h].forEach(col => lineas.push(`Hno ${h} en ${colLarga(col)}`));
           });
         }
         if (apoyo2) {
           hermanosCola.forEach(h => {
-            colaCols[h].forEach(col => lineas.push(`Hm/no ${h} en ${colLarga(col)}`));
+            colaCols[h].forEach(col => lineas.push(`Hno ${h} en ${colLarga(col)}`));
           });
         }
         if (apoyo3) {
           hermanosFreq.forEach(h => {
-            lineas.push(`Hm/no ${h} (${freq[h]}x) en ${(todasCols[h] || []).map(colLarga).join("/")}`);
+            lineas.push(`Hno ${h} (${freq[h]}x) en ${(todasCols[h] || []).map(colLarga).join("/")}`);
           });
         }
 
-        const testigo = totalApoyos === 3 ? "Teoría fuerte (3/3)" : `(${totalApoyos}/3)`;
+        const testigo = totalApoyos === 3 ? "Hipotesis (3/3)" : `(${totalApoyos}/3)`;
         let bloque = `<div style="margin-bottom:10px; color:var(--gold);">`;
         bloque += `<div style="font-weight:800;">Coordenada ${digito} — ${nivel} veces · ${testigo}</div>`;
         lineas.forEach(l => { bloque += `<div style="margin-left:10px;">${l}</div>`; });
