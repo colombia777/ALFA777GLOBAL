@@ -1939,8 +1939,9 @@
         if (fuertesDestacado) {
           html += `<div style="font-size:22px; font-weight:800; color:#b3261e; margin-bottom:3mm;">${fuertesDestacado}</div>`;
         }
-        const fuertesResto = fuertesDestacado ? fuertesTexto.replace(fuertesDestacado, '').trim() : fuertesTexto;
-        html += `<div style="white-space:pre-wrap; line-height:1.6;">${fuertesResto}</div>`;
+        // ANULADO en PDF: texto de apoyo (fuertesResto) — se conserva título y número grande
+        // const fuertesResto = fuertesDestacado ? fuertesTexto.replace(fuertesDestacado, '').trim() : fuertesTexto;
+        // html += `<div style="white-space:pre-wrap; line-height:1.6;">${fuertesResto}</div>`;
         html += '</div>';
       } else {
         html += `<div style="${BLK} flex:1; min-height:20mm;"></div>`;
