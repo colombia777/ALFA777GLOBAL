@@ -2016,8 +2016,9 @@
     }
 
     // ── Fila 5: Frecuencia relativa observada (ancho completo, columnas horizontales) ──
+    // ANULADO TEMPORALMENTE en PDF (no se borra el código, solo se desactiva la condición)
     {
-      const hayLiberacion = !!liberacionContent.textContent.trim();
+      const hayLiberacion = false; // antes: !!liberacionContent.textContent.trim();
 
       if (hayLiberacion) {
         html += `<div style="${BLK}">`;
