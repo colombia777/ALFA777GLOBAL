@@ -798,31 +798,6 @@
     <div style="font-size:0.75rem;" id="alertasPeligrosContent"></div>
   </div>
 
-  <div id="hipotesisPanel" class="section-box" style="display:block; margin-top:14px;">
-    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      ¿Hipótesis principales para 0125/123/234?
-    </label>
-    <div id="hipotesis1Box" style="margin-bottom:10px;">
-      <label style="display:block;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;">
-        Hipótesis #1
-      </label>
-      <div style="font-size:0.8rem; color:var(--muted);" id="hipotesis1Content">🏗️ En construcción</div>
-    </div>
-    <div id="hipotesis2Box">
-      <label style="display:block;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;">
-        Hipótesis #2
-      </label>
-      <div style="font-size:0.8rem; color:var(--muted);" id="hipotesis2Content">🏗️ En construcción</div>
-    </div>
-  </div>
-
-  <div id="potencialesPanel" class="section-box" style="display:block; margin-top:14px;">
-    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      Valores de referencia
-    </label>
-    <div style="font-size:0.8rem; color:var(--muted);" id="potencialesContent">🏗️ En construcción</div>
-  </div>
-
   <div id="printArea" style="display:none;"></div>
 
   <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
@@ -1337,7 +1312,7 @@
     noVanHtml += `<div style="font-size:0.85rem;">${noVanMachoList.length > 0 ? noVanMachoList.join(", ") : "—"}</div>`;
 
     if (noVanMachoList.length === 10) {
-      noVanHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Jugada Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará, o revisa la coordenada más repetida en "Orden repetición coordenadas".</div>`;
+      noVanHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
     }
 
     reportNoVanMacho.innerHTML = noVanHtml;
@@ -1350,7 +1325,7 @@
       if (!noVanMachoSet.has(d)) faltantes.push(d);
     }
 
-    let fuertesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Jugada Potencial a Repetición de Coordenadas más Fuertes</label>`;
+    let fuertesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">J P Repetición Coordenadas + F</label>`;
     if (faltantes.length === 0) {
       fuertesHtml += `<div style="font-size:0.85rem;">—</div>`;
     } else {
@@ -1407,7 +1382,7 @@
     // ── Jugada Columnas 5 y 10 coordenadas iguales ──────────
     // Si C5 y C10 tienen el mismo par (baja, alta), se muestran esas
     // coordenadas como resultado.
-    let c5c10IgualesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Jugada Columnas 5 y 10 Coordenadas Iguales</label>`;
+    let c5c10IgualesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Columnas 5 y 10 Coordenadas Iguales</label>`;
     if (ordered[4] && ordered[9]) {
       const c5Low = Math.min(ordered[4].coords[0], ordered[4].coords[1]);
       const c5High = Math.max(ordered[4].coords[0], ordered[4].coords[1]);
@@ -1951,14 +1926,14 @@
 
     // ── Fila 3: Jugada Potencial a Repetición | Orden Repetición Coordenadas ──
     {
-      const fuertesTexto = reportFuertes.textContent.replace('Jugada Potencial a Repetición de Coordenadas más Fuertes', '').trim();
+      const fuertesTexto = reportFuertes.textContent.replace('J P Repetición Coordenadas + F', '').trim();
       const hayFuertes = fuertesTexto && fuertesTexto !== '—';
 
       html += `<div style="display:flex; gap:1mm; align-items:flex-start;">`;
 
       if (hayFuertes) {
         html += `<div style="${BLK} flex:1;">`;
-        html += `<div style="${TTL}">Jugada Potencial a Repetición de Coordenadas más Fuertes</div>`;
+        html += `<div style="${TTL}">J P Repetición Coordenadas + F</div>`;
         const fuertesFirstDiv = reportFuertes.querySelector('div');
         const fuertesDestacado = fuertesFirstDiv ? fuertesFirstDiv.textContent.trim() : '';
         if (fuertesDestacado) {
@@ -1985,7 +1960,7 @@
     // ── Fila 4: Tendencia de Descansos | Jugada Columnas 5 y 10 Coordenadas Iguales ──
     {
       const hayTendencia = result.active && result.bloquesDescanso && result.bloquesDescanso.length > 0;
-      const c5c10Texto = reportC5C10Iguales.textContent.replace('Jugada Columnas 5 y 10 Coordenadas Iguales', '').trim();
+      const c5c10Texto = reportC5C10Iguales.textContent.replace('Columnas 5 y 10 Coordenadas Iguales', '').trim();
       const hayC5C10 = c5c10Texto && c5c10Texto !== '—';
 
       if (hayTendencia || hayC5C10) {
@@ -2004,7 +1979,7 @@
 
         if (hayC5C10) {
           html += `<div style="${BLK} flex:1;">`;
-          html += `<div style="${TTL}">Jugada Columnas 5 y 10 Coordenadas Iguales</div>`;
+          html += `<div style="${TTL}">Columnas 5 y 10 Coordenadas Iguales</div>`;
           html += `<div>${c5c10Texto}</div>`;
           html += '</div>';
         } else {
@@ -2060,7 +2035,7 @@
   function renderAlertasPeligros(result) {
     const alertas = [];
     if (result && result.alerta5 === 'sola') {
-      alertas.push('⚠ Significado 5 subió a MM como larga = L C L');
+      alertas.push('⚠ 5 subió a MM como larga = L C L');
     } else if (result && result.alerta5 === 'con4') {
       alertas.push('⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).');
     }
