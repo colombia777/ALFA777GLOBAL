@@ -726,18 +726,20 @@
   </div>
 
   <div id="quedadasPanel" style="margin-top:14px;">
-    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      Módulo Macho · Coordenadas Quedadas
-    </label>
+    <div class="section-box">
+      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+        Módulo Macho · Coordenadas Quedadas
+      </label>
 
-    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;" id="quedadasBodega"></div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;" id="quedadasBodega"></div>
+    </div>
 
-    <div class="section-box" id="machoManoBox" style="display:none;">
+    <div class="section-box" id="machoManoBox" style="display:none; margin-top:14px;">
       <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Coordenadas Macho de la Mano</label>
       <div style="display:flex; gap:6px; flex-wrap:wrap;" id="machoManoContent"></div>
     </div>
 
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;" id="quedadasRachas"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; margin-top:14px;" id="quedadasRachas"></div>
 
     <div style="font-size:0.7rem; color:var(--muted);" id="quedadasDescanso"></div>
 
@@ -2060,21 +2062,42 @@
       alertas.push('⚠ Alerta 2 números repetidos en últimas 2 jugadas: tener precaución.');
     }
 
-    // Alertas de Rachas (Cargado / Liberado / Descanso) en +3 / -3
-    if (result && result.rachaCargado >= 3) {
-      alertas.push('⚠️ Racha cargado en más +3');
-    } else if (result && result.rachaCargado <= -3) {
-      alertas.push('⚠️ Racha cargado en menos -3');
-    }
-    if (result && result.rachaLiberado >= 3) {
-      alertas.push('⚠️ Racha liberado en más +3');
-    } else if (result && result.rachaLiberado <= -3) {
-      alertas.push('⚠️ Racha liberados en menos -3');
-    }
-    if (result && result.rachaDescanso >= 3) {
-      alertas.push('⚠️ Racha descansos en más +3');
-    } else if (result && result.rachaDescanso <= -3) {
-      alertas.push('⚠️ Racha descansos menos -3');
+    // Alertas de Rachas (Cargado / Liberado / Descanso): se muestra únicamente
+    // el umbral más extremo alcanzado por cada racha (no se acumulan varios
+    // niveles de la misma racha a la vez).
+    if (result) {
+      // Cargado
+      if (result.rachaCargado <= -4) {
+        alertas.push('⚠️ Racha cargado menos -4');
+      } else if (result.rachaCargado <= -3) {
+        alertas.push('⚠️ Racha cargado en menos -3');
+      } else if (result.rachaCargado >= 3) {
+        alertas.push('⚠️ Racha cargado en más +3');
+      }
+
+      // Liberado
+      if (result.rachaLiberado <= -5) {
+        alertas.push('⚠️ Racha liberado menos -5');
+      } else if (result.rachaLiberado <= -3) {
+        alertas.push('⚠️ Racha liberados en menos -3');
+      } else if (result.rachaLiberado >= 4) {
+        alertas.push('⚠️ Racha liberado más +4');
+      } else if (result.rachaLiberado >= 3) {
+        alertas.push('⚠️ Racha liberado en más +3');
+      }
+
+      // Descanso
+      if (result.rachaDescanso <= -6) {
+        alertas.push('⚠️ Racha descansos menos -6');
+      } else if (result.rachaDescanso <= -5) {
+        alertas.push('⚠️ Racha descansos menos -5');
+      } else if (result.rachaDescanso <= -4) {
+        alertas.push('⚠️ Racha descansos menos -4');
+      } else if (result.rachaDescanso <= -3) {
+        alertas.push('⚠️ Racha descansos menos -3');
+      } else if (result.rachaDescanso >= 3) {
+        alertas.push('⚠️ Racha descansos en más +3');
+      }
     }
 
     if (alertas.length > 0) {
