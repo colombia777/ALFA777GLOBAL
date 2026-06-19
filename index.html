@@ -1545,7 +1545,7 @@
     // recorrer desde la jugada más antigua hacia la más reciente.
     const chrono = [...plays].reverse(); // chrono[0] = más antigua
 
-    const MIN_JUGADAS = 20;
+    const MIN_JUGADAS = 14;
     if (chrono.length < MIN_JUGADAS) {
       return { active: false, needed: MIN_JUGADAS - chrono.length };
     }
