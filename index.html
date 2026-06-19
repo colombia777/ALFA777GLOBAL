@@ -2041,6 +2041,18 @@
       alertas.push('⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).');
     }
 
+    // Alerta: las coordenadas 0 y 5 están juntas en Módulo Macho · Coordenadas
+    // Quedadas. Se indica cuál de las dos subió primero (entrada de giro menor).
+    if (result && result.bodega[0] !== null && result.bodega[5] !== null) {
+      const entrada0 = result.bodegaEntradaGiro[0];
+      const entrada5 = result.bodegaEntradaGiro[5];
+      if (entrada0 < entrada5) {
+        alertas.push('⚠️ 0 subió primero que 5');
+      } else if (entrada5 < entrada0) {
+        alertas.push('⚠️ 5 subió primero que 0');
+      }
+    }
+
     // Alerta: el mismo número registrado se repitió en las 2 jugadas más
     // recientes (ej. #37 = 1, #38 = 1).
     if (history.length >= 2 && history[0].num === history[1].num) {
