@@ -2059,6 +2059,23 @@
       alertas.push('⚠ Alerta 2 números repetidos en últimas 2 jugadas: tener precaución.');
     }
 
+    // Alertas de Rachas (Cargado / Liberado / Descanso) en +3 / -3
+    if (result && result.rachaCargado >= 3) {
+      alertas.push('⚠️ Racha cargado en más +3');
+    } else if (result && result.rachaCargado <= -3) {
+      alertas.push('⚠️ Racha cargado en menos -3');
+    }
+    if (result && result.rachaLiberado >= 3) {
+      alertas.push('⚠️ Racha liberado en más +3');
+    } else if (result && result.rachaLiberado <= -3) {
+      alertas.push('⚠️ Racha liberados en menos -3');
+    }
+    if (result && result.rachaDescanso >= 3) {
+      alertas.push('⚠️ Racha descansos en más +3');
+    } else if (result && result.rachaDescanso <= -3) {
+      alertas.push('⚠️ Racha descansos menos -3');
+    }
+
     if (alertas.length > 0) {
       alertasPeligrosContent.innerHTML = alertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join('');
       alertasPeligrosPanel.style.display = "block";
