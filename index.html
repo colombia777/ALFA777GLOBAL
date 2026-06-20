@@ -510,6 +510,12 @@
     color: #000 !important;
   }
 
+  /* Columnas C4 y C11: resaltado rosa (Pantone 489 U) */
+  #reportTable .col-highlight-pink {
+    background: #f5c7b8 !important;
+    color: #000 !important;
+  }
+
   /* Tabla de repetición: celdas con más de 3 repeticiones = alarma */
   #reportFreqTable .freq-highlight {
     background: #5ac8e6 !important;
@@ -551,6 +557,10 @@
     }
     #printArea .col-highlight {
       background: #f5d020 !important;
+      color: #000 !important;
+    }
+    #printArea .col-highlight-pink {
+      background: #f5c7b8 !important;
       color: #000 !important;
     }
     #printArea .freq-highlight {
@@ -1241,7 +1251,8 @@
     for (let i = n; i >= 1; i--) {
       const entry = ordered[i - 1];
       const isHl = (i === 5 || i === 10);
-      const hlAttr = isHl ? ' class="col-highlight"' : '';
+      const isHlPink = (i === 4 || i === 11);
+      const hlAttr = isHl ? ' class="col-highlight"' : (isHlPink ? ' class="col-highlight-pink"' : '');
       headerRow += `<td${hlAttr}>C${i}</td>`;
       numRow += `<td class="cell-num">#${entry.num}</td>`;
       const low = Math.min(entry.coords[0], entry.coords[1]);
