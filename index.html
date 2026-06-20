@@ -2087,7 +2087,9 @@
       }
 
       // Descanso
-      if (result.rachaDescanso <= -6) {
+      if (result.rachaDescanso <= -7) {
+        alertas.push('⚠️ Racha descansos menos -7');
+      } else if (result.rachaDescanso <= -6) {
         alertas.push('⚠️ Racha descansos menos -6');
       } else if (result.rachaDescanso <= -5) {
         alertas.push('⚠️ Racha descansos menos -5');
