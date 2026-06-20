@@ -1330,6 +1330,7 @@
     let fuertesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">J P Repetición Coordenadas + F</label>`;
     if (faltantes.length === 0) {
       fuertesHtml += `<div style="font-size:0.85rem;">—</div>`;
+      fuertesHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
     } else {
       // Coordenadas faltantes, destacadas y solas
       fuertesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold); margin-bottom:10px;">${faltantes.join(", ")}</div>`;
@@ -1944,6 +1945,10 @@
         // ANULADO en PDF: texto de apoyo (fuertesResto) — se conserva título y número grande
         // const fuertesResto = fuertesDestacado ? fuertesTexto.replace(fuertesDestacado, '').trim() : fuertesTexto;
         // html += `<div style="white-space:pre-wrap; line-height:1.6;">${fuertesResto}</div>`;
+        // Excepción: el aviso de "Bloque Vacío" sí se imprime en el PDF aunque el resto del texto de apoyo esté anulado.
+        if (fuertesTexto.includes('Bloque Vacío')) {
+          html += `<div style="color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
+        }
         html += '</div>';
       } else {
         html += `<div style="${BLK} flex:1; min-height:20mm;"></div>`;
@@ -2554,7 +2559,8 @@
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   En construcción 🏗️<br>
-  Aquí construyendo el futuro 🏗️👌⏰
+  Aquí construyendo el futuro 🏗️👌⏰<br>
+  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.
 </footer>
 
 </body>
