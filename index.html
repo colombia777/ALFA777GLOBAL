@@ -1718,9 +1718,9 @@
       }
     }
 
-    const rachaCargado = calcularRacha(eventosCargado, 10, 10);
-    const rachaLiberado = calcularRacha(eventosLiberado, 10, 10);
-    const rachaDescanso = calcularRacha(eventosDescanso, 10, 10);
+    const rachaCargado = calcularRacha(eventosCargado, 15, 15);
+    const rachaLiberado = calcularRacha(eventosLiberado, 15, 15);
+    const rachaDescanso = calcularRacha(eventosDescanso, 15, 15);
 
     return {
       active: true,
@@ -1900,6 +1900,9 @@
       } else {
         html += `<div>Sin coordenadas quedadas</div>`;
       }
+      if (result.alerta5 === 'con4') {
+        html += `<div style="margin-top:2mm; color:#8a6d00;">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).<br>⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+      }
       html += '</div>';
 
       html += '</div>';
@@ -1999,7 +2002,7 @@
         if (hayC5C10) {
           html += `<div style="${BLK} flex:1;">`;
           html += `<div style="${TTL}">Columnas 5 y 10 Coordenadas Iguales</div>`;
-          html += `<div>${c5c10Texto}</div>`;
+          html += `<div>⚠️ Posible cord de C5 C10  suba a bodega M M</div>`;
           html += '</div>';
         } else {
           html += `<div style="${BLK} flex:1;"></div>`;
@@ -2083,7 +2086,17 @@
     // niveles de la misma racha a la vez).
     if (result) {
       // Cargado
-      if (result.rachaCargado <= -10) {
+      if (result.rachaCargado <= -15) {
+        alertas.push('⚠️ Racha cargado menos -15');
+      } else if (result.rachaCargado <= -14) {
+        alertas.push('⚠️ Racha cargado menos -14');
+      } else if (result.rachaCargado <= -13) {
+        alertas.push('⚠️ Racha cargado menos -13');
+      } else if (result.rachaCargado <= -12) {
+        alertas.push('⚠️ Racha cargado menos -12');
+      } else if (result.rachaCargado <= -11) {
+        alertas.push('⚠️ Racha cargado menos -11');
+      } else if (result.rachaCargado <= -10) {
         alertas.push('⚠️ Racha cargado menos -10');
       } else if (result.rachaCargado <= -9) {
         alertas.push('⚠️ Racha cargado menos -9');
@@ -2099,6 +2112,16 @@
         alertas.push('⚠️ Racha cargado menos -4');
       } else if (result.rachaCargado <= -3) {
         alertas.push('⚠️ Racha cargado en menos -3');
+      } else if (result.rachaCargado >= 15) {
+        alertas.push('⚠️ Racha cargado más +15');
+      } else if (result.rachaCargado >= 14) {
+        alertas.push('⚠️ Racha cargado más +14');
+      } else if (result.rachaCargado >= 13) {
+        alertas.push('⚠️ Racha cargado más +13');
+      } else if (result.rachaCargado >= 12) {
+        alertas.push('⚠️ Racha cargado más +12');
+      } else if (result.rachaCargado >= 11) {
+        alertas.push('⚠️ Racha cargado más +11');
       } else if (result.rachaCargado >= 10) {
         alertas.push('⚠️ Racha cargado más +10');
       } else if (result.rachaCargado >= 9) {
@@ -2118,7 +2141,17 @@
       }
 
       // Liberado
-      if (result.rachaLiberado <= -10) {
+      if (result.rachaLiberado <= -15) {
+        alertas.push('⚠️ Racha liberado menos -15');
+      } else if (result.rachaLiberado <= -14) {
+        alertas.push('⚠️ Racha liberado menos -14');
+      } else if (result.rachaLiberado <= -13) {
+        alertas.push('⚠️ Racha liberado menos -13');
+      } else if (result.rachaLiberado <= -12) {
+        alertas.push('⚠️ Racha liberado menos -12');
+      } else if (result.rachaLiberado <= -11) {
+        alertas.push('⚠️ Racha liberado menos -11');
+      } else if (result.rachaLiberado <= -10) {
         alertas.push('⚠️ Racha liberado menos -10');
       } else if (result.rachaLiberado <= -9) {
         alertas.push('⚠️ Racha liberado menos -9');
@@ -2134,6 +2167,16 @@
         alertas.push('⚠️ Racha liberado menos -4');
       } else if (result.rachaLiberado <= -3) {
         alertas.push('⚠️ Racha liberados en menos -3');
+      } else if (result.rachaLiberado >= 15) {
+        alertas.push('⚠️ Racha liberado más +15');
+      } else if (result.rachaLiberado >= 14) {
+        alertas.push('⚠️ Racha liberado más +14');
+      } else if (result.rachaLiberado >= 13) {
+        alertas.push('⚠️ Racha liberado más +13');
+      } else if (result.rachaLiberado >= 12) {
+        alertas.push('⚠️ Racha liberado más +12');
+      } else if (result.rachaLiberado >= 11) {
+        alertas.push('⚠️ Racha liberado más +11');
       } else if (result.rachaLiberado >= 10) {
         alertas.push('⚠️ Racha liberado más +10');
       } else if (result.rachaLiberado >= 9) {
@@ -2153,7 +2196,17 @@
       }
 
       // Descanso
-      if (result.rachaDescanso <= -10) {
+      if (result.rachaDescanso <= -15) {
+        alertas.push('⚠️ Racha descansos menos -15');
+      } else if (result.rachaDescanso <= -14) {
+        alertas.push('⚠️ Racha descansos menos -14');
+      } else if (result.rachaDescanso <= -13) {
+        alertas.push('⚠️ Racha descansos menos -13');
+      } else if (result.rachaDescanso <= -12) {
+        alertas.push('⚠️ Racha descansos menos -12');
+      } else if (result.rachaDescanso <= -11) {
+        alertas.push('⚠️ Racha descansos menos -11');
+      } else if (result.rachaDescanso <= -10) {
         alertas.push('⚠️ Racha descansos menos -10');
       } else if (result.rachaDescanso <= -9) {
         alertas.push('⚠️ Racha descansos menos -9');
@@ -2208,6 +2261,10 @@
     quedadasBodega.innerHTML = bodegaOrdenada.length > 0
       ? bodegaOrdenada.map(item => `<div class="quedada-chip"><div class="digit">${item.digito}</div><div class="count">${item.nivel}</div></div>`).join("")
       : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
+
+    if (result.alerta5 === 'con4') {
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).<br>⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+    }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
     // Solo se muestra si hay 2+ dígitos en bodega (mínimo "de la mano").
