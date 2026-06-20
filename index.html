@@ -1901,7 +1901,7 @@
         html += `<div>Sin coordenadas quedadas</div>`;
       }
       if (result.alerta5 === 'con4') {
-        html += `<div style="margin-top:2mm; color:#8a6d00;">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).<br>⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+        html += `<div style="margin-top:2mm; color:#8a6d00;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
       }
       html += '</div>';
 
@@ -2059,7 +2059,6 @@
     if (result && result.alerta5 === 'sola') {
       alertas.push('⚠ 5 subió a MM como larga = L C L');
     } else if (result && result.alerta5 === 'con4') {
-      alertas.push('⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).');
       alertas.push('⚠️ 5 cargo en corta con 4/5  L E C');
     }
 
@@ -2263,7 +2262,7 @@
       : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
 
     if (result.alerta5 === 'con4') {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠ Coordenada 5 se subió con el 4: cuando se libere, será en cortas (4/5).<br>⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
     }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
