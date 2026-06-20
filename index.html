@@ -2067,19 +2067,69 @@
     // niveles de la misma racha a la vez).
     if (result) {
       // Cargado
-      if (result.rachaCargado <= -4) {
+      if (result.rachaCargado <= -10) {
+        alertas.push('⚠️ Racha cargado menos -10');
+      } else if (result.rachaCargado <= -9) {
+        alertas.push('⚠️ Racha cargado menos -9');
+      } else if (result.rachaCargado <= -8) {
+        alertas.push('⚠️ Racha cargado menos -8');
+      } else if (result.rachaCargado <= -7) {
+        alertas.push('⚠️ Racha cargado menos -7');
+      } else if (result.rachaCargado <= -6) {
+        alertas.push('⚠️ Racha cargado menos -6');
+      } else if (result.rachaCargado <= -5) {
+        alertas.push('⚠️ Racha cargado menos -5');
+      } else if (result.rachaCargado <= -4) {
         alertas.push('⚠️ Racha cargado menos -4');
       } else if (result.rachaCargado <= -3) {
         alertas.push('⚠️ Racha cargado en menos -3');
+      } else if (result.rachaCargado >= 10) {
+        alertas.push('⚠️ Racha cargado más +10');
+      } else if (result.rachaCargado >= 9) {
+        alertas.push('⚠️ Racha cargado más +9');
+      } else if (result.rachaCargado >= 8) {
+        alertas.push('⚠️ Racha cargado más +8');
+      } else if (result.rachaCargado >= 7) {
+        alertas.push('⚠️ Racha cargado más +7');
+      } else if (result.rachaCargado >= 6) {
+        alertas.push('⚠️ Racha cargado más +6');
+      } else if (result.rachaCargado >= 5) {
+        alertas.push('⚠️ Racha cargado más +5');
+      } else if (result.rachaCargado >= 4) {
+        alertas.push('⚠️ Racha cargado más +4');
       } else if (result.rachaCargado >= 3) {
         alertas.push('⚠️ Racha cargado en más +3');
       }
 
       // Liberado
-      if (result.rachaLiberado <= -5) {
+      if (result.rachaLiberado <= -10) {
+        alertas.push('⚠️ Racha liberado menos -10');
+      } else if (result.rachaLiberado <= -9) {
+        alertas.push('⚠️ Racha liberado menos -9');
+      } else if (result.rachaLiberado <= -8) {
+        alertas.push('⚠️ Racha liberado menos -8');
+      } else if (result.rachaLiberado <= -7) {
+        alertas.push('⚠️ Racha liberado menos -7');
+      } else if (result.rachaLiberado <= -6) {
+        alertas.push('⚠️ Racha liberado menos -6');
+      } else if (result.rachaLiberado <= -5) {
         alertas.push('⚠️ Racha liberado menos -5');
+      } else if (result.rachaLiberado <= -4) {
+        alertas.push('⚠️ Racha liberado menos -4');
       } else if (result.rachaLiberado <= -3) {
         alertas.push('⚠️ Racha liberados en menos -3');
+      } else if (result.rachaLiberado >= 10) {
+        alertas.push('⚠️ Racha liberado más +10');
+      } else if (result.rachaLiberado >= 9) {
+        alertas.push('⚠️ Racha liberado más +9');
+      } else if (result.rachaLiberado >= 8) {
+        alertas.push('⚠️ Racha liberado más +8');
+      } else if (result.rachaLiberado >= 7) {
+        alertas.push('⚠️ Racha liberado más +7');
+      } else if (result.rachaLiberado >= 6) {
+        alertas.push('⚠️ Racha liberado más +6');
+      } else if (result.rachaLiberado >= 5) {
+        alertas.push('⚠️ Racha liberado más +5');
       } else if (result.rachaLiberado >= 4) {
         alertas.push('⚠️ Racha liberado más +4');
       } else if (result.rachaLiberado >= 3) {
@@ -2087,7 +2137,13 @@
       }
 
       // Descanso
-      if (result.rachaDescanso <= -7) {
+      if (result.rachaDescanso <= -10) {
+        alertas.push('⚠️ Racha descansos menos -10');
+      } else if (result.rachaDescanso <= -9) {
+        alertas.push('⚠️ Racha descansos menos -9');
+      } else if (result.rachaDescanso <= -8) {
+        alertas.push('⚠️ Racha descansos menos -8');
+      } else if (result.rachaDescanso <= -7) {
         alertas.push('⚠️ Racha descansos menos -7');
       } else if (result.rachaDescanso <= -6) {
         alertas.push('⚠️ Racha descansos menos -6');
