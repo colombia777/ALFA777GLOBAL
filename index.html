@@ -1852,7 +1852,7 @@
     if (ultimaJugada) {
       html += `<span><strong>Jugada #:</strong> ${ultimaJugada.playNumber}</span>`;
       html += `<span><strong>Último # cargado:</strong> ${ultimaJugada.num}</span>`;
-      html += `<span><strong>Coords ganador:</strong> ${ultimaJugada.coords[0]}/${ultimaJugada.coords[1]}</span>`;
+      html += `<span><strong>Cordenadas:</strong> ${ultimaJugada.coords[0]}/${ultimaJugada.coords[1]}</span>`;
     }
     html += '</div>';
 
@@ -1971,9 +1971,10 @@
       html += `<div style="${BLK} flex:1;">`;
       html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
       html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
-      if (reportDescansoAlert.textContent.trim()) {
-        html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
-      }
+      // ANULADO en PDF: aviso "Potencial descanso..." — se mantiene visible en pantalla
+      // if (reportDescansoAlert.textContent.trim()) {
+      //   html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
+      // }
       html += '</div>';
 
       html += '</div>';
@@ -2627,7 +2628,8 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   En construcción 🏗️<br>
   Aquí construyendo el futuro 🏗️👌⏰<br>
-  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.
+  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
+  🏗️  El proceso es duro/quieren es el resultado
 </footer>
 
 </body>
