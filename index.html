@@ -2103,6 +2103,16 @@
   // humano siempre las encuentre en un único lugar fácil de revisar.
   function renderAlertasPeligros(result) {
     const alertas = [];
+
+    // Alerta: el último número cargado tiene coordenadas 5/5
+    if (history.length > 0 && history[0].coords) {
+      const c0 = history[0].coords[0];
+      const c1 = history[0].coords[1];
+      if (c0 === 5 && c1 === 5) {
+        alertas.push('⚠️ 5/5 no se repite C1 en próximo giro');
+      }
+    }
+
     // ANULADO: los mensajes de alerta5 ('sola' y 'con4') se desactivaron porque
     // sugerían predicciones (largas/cortas) que son una falacia — demostrado en campo.
     // La lógica de detección (result.alerta5) sigue calculándose, solo no se emite mensaje.
@@ -2732,7 +2742,8 @@
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
-  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.
+  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
+  Versión #001 · Actualización A#33 N#34
 </footer>
 
 </body>
