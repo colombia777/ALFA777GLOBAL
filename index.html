@@ -1945,9 +1945,10 @@
       } else {
         html += `<div>Sin coordenadas quedadas</div>`;
       }
-      if (result.alerta5 === 'con4') {
-        html += `<div style="margin-top:2mm; color:#8a6d00;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
-      }
+      // ANULADO: mensaje de alerta5 en PDF (falacia)
+      // if (result.alerta5 === 'con4') {
+      //   html += `<div style="margin-top:2mm; color:#8a6d00;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+      // }
       html += '</div>';
 
       html += '</div>';
@@ -2102,11 +2103,14 @@
   // humano siempre las encuentre en un único lugar fácil de revisar.
   function renderAlertasPeligros(result) {
     const alertas = [];
-    if (result && result.alerta5 === 'sola') {
-      alertas.push('⚠ 5 subió a MM como larga = L C L');
-    } else if (result && result.alerta5 === 'con4') {
-      alertas.push('⚠️ 5 cargo en corta con 4/5  L E C');
-    }
+    // ANULADO: los mensajes de alerta5 ('sola' y 'con4') se desactivaron porque
+    // sugerían predicciones (largas/cortas) que son una falacia — demostrado en campo.
+    // La lógica de detección (result.alerta5) sigue calculándose, solo no se emite mensaje.
+    // if (result && result.alerta5 === 'sola') {
+    //   alertas.push('⚠ 5 subió a MM como larga = L C L');
+    // } else if (result && result.alerta5 === 'con4') {
+    //   alertas.push('⚠️ 5 cargo en corta con 4/5  L E C');
+    // }
 
     // Alerta: las coordenadas 0 y 5 están juntas en Módulo Macho · Coordenadas
     // Quedadas. Se indica cuál de las dos subió primero (entrada de giro menor).
@@ -2307,9 +2311,10 @@
       ? bodegaOrdenada.map(item => `<div class="quedada-chip"><div class="digit">${item.digito}</div><div class="count">${item.nivel}</div></div>`).join("")
       : '<span class="empty-msg">Sin coordenadas quedadas actualmente.</span>';
 
-    if (result.alerta5 === 'con4') {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
-    }
+    // ANULADO: mensaje de alerta5 en pantalla (falacia)
+    // if (result.alerta5 === 'con4') {
+    //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+    // }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
     // Solo se muestra si hay 2+ dígitos en bodega (mínimo "de la mano").
