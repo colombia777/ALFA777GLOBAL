@@ -2668,6 +2668,7 @@
     const data = {
       history,
       playCounter,
+      pdfHistory,
       exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -2706,8 +2707,11 @@
         }
         history = data.history;
         playCounter = typeof data.playCounter === "number" ? data.playCounter : 0;
+        pdfHistory = Array.isArray(data.pdfHistory) ? data.pdfHistory : [];
         localStorage.setItem("ruleta_history", JSON.stringify(history));
         localStorage.setItem("ruleta_playCounter", String(playCounter));
+        localStorage.setItem("ruleta_pdfHistory", JSON.stringify(pdfHistory));
+        renderPdfHistory();
         restoreFromHistory();
         dataPinMsg.style.color = "var(--gold)";
         dataPinMsg.textContent = `Trazabilidad importada: ${history.length} carga(s).`;
