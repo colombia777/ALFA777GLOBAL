@@ -809,9 +809,12 @@
   </div>
 
   <div id="liberacionPanel" class="section-box" style="display:none; margin-top:14px;">
-    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      Frecuencia relativa observada
-    </label>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0;">
+        Frecuencia relativa observada
+      </label>
+      <button id="liberacionToggleBtn" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Ocultar</button>
+    </div>
     <div style="font-size:0.75rem;" id="liberacionContent"></div>
   </div>
 
@@ -983,6 +986,7 @@
   const tendenciaContent = document.getElementById("tendenciaContent");
   const liberacionPanel = document.getElementById("liberacionPanel");
   const liberacionContent = document.getElementById("liberacionContent");
+  const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
   const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
@@ -1579,7 +1583,19 @@
 
     liberacionContent.innerHTML = items.join("");
     liberacionPanel.style.display = "block";
+    liberacionContent.style.display = "";
+    liberacionToggleBtn.textContent = "Ocultar";
   }
+
+  liberacionToggleBtn.addEventListener("click", () => {
+    if (liberacionContent.style.display === "none") {
+      liberacionContent.style.display = "";
+      liberacionToggleBtn.textContent = "Ocultar";
+    } else {
+      liberacionContent.style.display = "none";
+      liberacionToggleBtn.textContent = "Ver";
+    }
+  });
 
   // ── Módulo Macho · Coordenadas Quedadas ────────────────
   // Lee la trazabilidad ya guardada; no afecta cálculo de cardinales/coordenadas.
@@ -2743,7 +2759,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#33 N#34
+  Versión #001 · Actualización A#34 N#35
 </footer>
 
 </body>
