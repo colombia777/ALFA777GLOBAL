@@ -677,6 +677,17 @@
     <input type="password" id="undoPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4">
     <button id="undoBtn">Deshacer U/C</button>
   </div>
+  <div class="error" id="undoErrorMsg"></div>
+
+  <div id="undoConfirmBox" style="display:none; margin-top:10px; padding:10px; border:1px solid #b3261e; border-radius:8px; background:rgba(179,38,30,0.1);">
+    <p style="color:#ff8a80; font-size:0.78rem; margin:0 0 8px;">⚠ ¿Está seguro? Esta acción deshace la última carga. Ingrese la clave nuevamente para confirmar.</p>
+    <div class="input-row">
+      <input type="password" id="undoConfirmPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
+      <button id="undoConfirmBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Confirmar</button>
+    </div>
+    <div class="error" id="undoConfirmErrorMsg"></div>
+    <button id="undoCancelBtn" style="margin-top:8px; width:100%; background:transparent;border:1px solid #2f333a;color:#3ddc84;">No estoy seguro</button>
+  </div>
 
   <div class="undo-row">
     <button id="sessionHistoryBtn" style="flex:1; display:none;">Ver historial de la sesión</button>
@@ -813,6 +824,16 @@
 
   <div id="printArea" style="display:none;"></div>
 
+  <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
+    <button id="pdfHistoryBtn" style="flex:1;">Ver historial de PDFs</button>
+  </div>
+  <div id="pdfHistorySection" style="display:none; margin-top:10px;">
+    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+      Historial de Trazabilidad de PDFs
+    </label>
+    <div id="pdfHistoryList"></div>
+  </div>
+
   <div class="input-row" style="margin-top:10px;">
     <input type="password" id="resetPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
     <button id="resetBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Reiniciar numeración</button>
@@ -842,15 +863,6 @@
   </div>
   <div id="dataPinMsg" style="font-size:0.8rem; color:var(--red); margin-top:6px; min-height:1em;"></div>
 
-  <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
-    <button id="pdfHistoryBtn" style="flex:1;">Ver historial de PDFs</button>
-  </div>
-  <div id="pdfHistorySection" style="display:none; margin-top:10px;">
-    <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      Historial de Trazabilidad de PDFs
-    </label>
-    <div id="pdfHistoryList"></div>
-  </div>
 </div>
 
 <script>
@@ -936,6 +948,12 @@
   const lockError = document.getElementById("lockError");
   const undoBtn = document.getElementById("undoBtn");
   const undoPin = document.getElementById("undoPin");
+  const undoErrorMsg = document.getElementById("undoErrorMsg");
+  const undoConfirmBox = document.getElementById("undoConfirmBox");
+  const undoConfirmPin = document.getElementById("undoConfirmPin");
+  const undoConfirmBtn = document.getElementById("undoConfirmBtn");
+  const undoConfirmErrorMsg = document.getElementById("undoConfirmErrorMsg");
+  const undoCancelBtn = document.getElementById("undoCancelBtn");
   const logoutBtn = document.getElementById("logoutBtnHeader");
   const reportBtn = document.getElementById("reportBtn");
   const reportPanel = document.getElementById("reportPanel");
@@ -2478,13 +2496,27 @@
   undoBtn.addEventListener("click", () => {
     const pin = undoPin.value.trim();
     if (pin !== "7890") {
-      errorMsg.textContent = "Clave incorrecta. No se deshizo la última carga.";
+      undoErrorMsg.textContent = "Clave incorrecta. No se deshizo la última carga.";
       return;
     }
+    undoErrorMsg.textContent = "";
     undoPin.value = "";
+    undoConfirmBox.style.display = "block";
+    undoConfirmPin.focus();
+  });
+
+  undoConfirmBtn.addEventListener("click", () => {
+    const pin = undoConfirmPin.value.trim();
+    if (pin !== "7890") {
+      undoConfirmErrorMsg.textContent = "Clave incorrecta. No se deshizo la última carga.";
+      return;
+    }
+    undoConfirmPin.value = "";
+    undoConfirmErrorMsg.textContent = "";
+    undoConfirmBox.style.display = "none";
 
     if (history.length === 0) {
-      errorMsg.textContent = "No hay nada que deshacer.";
+      undoErrorMsg.textContent = "No hay nada que deshacer.";
       return;
     }
 
@@ -2550,6 +2582,12 @@
       }
     }
     renderPrintArea();
+  });
+
+  undoCancelBtn.addEventListener("click", () => {
+    undoConfirmPin.value = "";
+    undoConfirmErrorMsg.textContent = "";
+    undoConfirmBox.style.display = "none";
   });
 
   reportBtn.addEventListener("click", () => {
