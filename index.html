@@ -643,7 +643,13 @@
   <button id="logoutBtnHeader" style="background:transparent;border:1px solid #2f333a;color:var(--muted);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:6px;">Cerrar sesión</button>
 </div>
 
-<div class="wheel-wrap">
+<div style="width:min(96vw, 460px); display:flex; align-items:center; gap:8px; margin-top:16px;">
+  <input type="password" id="verRuletaPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem; text-align:center;">
+  <button id="verRuletaBtn" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:10px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">V - R</button>
+</div>
+<div class="error" id="verRuletaError"></div>
+
+<div class="wheel-wrap" id="wheelWrap" style="display:none;">
   <div class="wheel">
     <div class="pocket-layer" id="pocketLayer"></div>
     <div class="ring"></div>
@@ -811,6 +817,7 @@
     <input type="password" id="resetPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
     <button id="resetBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Reiniciar numeración</button>
   </div>
+  <div class="error" id="resetErrorMsg"></div>
 
   <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
     <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
@@ -875,6 +882,7 @@
   const numberInput = document.getElementById("numberInput");
   const loadBtn = document.getElementById("loadBtn");
   const errorMsg = document.getElementById("errorMsg");
+  const resetErrorMsg = document.getElementById("resetErrorMsg");
   const historyList = document.getElementById("historyList");
   const sessionHistoryBtn = document.getElementById("sessionHistoryBtn");
   const sessionHistorySection = document.getElementById("sessionHistorySection");
@@ -903,6 +911,10 @@
   const coordB = document.getElementById("coordB");
   const resetBtn = document.getElementById("resetBtn");
   const resetPin = document.getElementById("resetPin");
+  const verRuletaBtn = document.getElementById("verRuletaBtn");
+  const verRuletaPin = document.getElementById("verRuletaPin");
+  const verRuletaError = document.getElementById("verRuletaError");
+  const wheelWrap = document.getElementById("wheelWrap");
   const lockOverlay = document.getElementById("lockOverlay");
   const lockPin = document.getElementById("lockPin");
   const lockBtn = document.getElementById("lockBtn");
@@ -2343,10 +2355,21 @@
     if (e.key === "Enter") loadNumber();
   });
 
+  verRuletaBtn.addEventListener("click", () => {
+    const pin = verRuletaPin.value.trim();
+    if (pin !== "7890") {
+      verRuletaError.textContent = "Clave incorrecta.";
+      return;
+    }
+    verRuletaError.textContent = "";
+    verRuletaPin.value = "";
+    wheelWrap.style.display = (wheelWrap.style.display === "none") ? "" : "none";
+  });
+
   resetBtn.addEventListener("click", () => {
     const pin = resetPin.value.trim();
     if (pin !== "7890") {
-      errorMsg.textContent = "Clave incorrecta. No se reinició la sesión.";
+      resetErrorMsg.textContent = "Clave incorrecta. No se reinició la sesión.";
       return;
     }
 
@@ -2371,7 +2394,7 @@
     markerP2.style.display = "none";
     markerP3.style.display = "none";
     markerP4.style.display = "none";
-    errorMsg.textContent = "";
+    resetErrorMsg.textContent = "";
     numberInput.value = "";
     numberInput.focus();
     renderQuedadas();
@@ -2626,12 +2649,11 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  En construcción 🏗️<br>
-  Aquí construyendo el futuro 🏗️👌⏰<br>
-  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  🏗️  El proceso es duro/quieren es el resultado<br>
-  ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.
+  ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
+  ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.
 </footer>
 
 </body>
 </html>
+
+ 
