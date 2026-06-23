@@ -759,6 +759,7 @@
       <div id="cnListado" style="margin-top:8px; font-size:0.8rem;"></div>
       <div style="display:flex; gap:8px; margin-top:10px;">
         <button id="cnBtnGuardar" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px; font-weight:700;" disabled>Guardar listado</button>
+        <button id="cnBtnDeshacer" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px;" disabled>Deshacer</button>
         <button id="cnBtnLimpiar" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px;">Limpiar</button>
       </div>
       <div style="display:flex; gap:8px; margin-top:8px; display:none;" id="cnLimpiarBox">
@@ -2823,6 +2824,7 @@
   const cnListado = document.getElementById("cnListado");
   const cnBtnGuardar = document.getElementById("cnBtnGuardar");
   const cnBtnLimpiar = document.getElementById("cnBtnLimpiar");
+  const cnBtnDeshacer = document.getElementById("cnBtnDeshacer");
   const cnGuardados = document.getElementById("cnGuardados");
 
   let cnResultados = []; // acumula { coord1, coord2, segmento, numeros }
@@ -2975,8 +2977,10 @@
     if (cnResultados.length === 0) {
       cnListado.innerHTML = "";
       cnBtnGuardar.disabled = true;
+      cnBtnDeshacer.disabled = true;
       return;
     }
+    cnBtnDeshacer.disabled = false;
     const sortNums = arr => [...arr].sort((a, b) => {
       const na = a === "00" ? -1 : parseInt(a);
       const nb = b === "00" ? -1 : parseInt(b);
@@ -3010,6 +3014,14 @@
   const cnLimpiarPin = document.getElementById("cnLimpiarPin");
   const cnLimpiarConfirmBtn = document.getElementById("cnLimpiarConfirmBtn");
   const cnLimpiarError = document.getElementById("cnLimpiarError");
+
+  cnBtnDeshacer.addEventListener("click", () => {
+    if (cnResultados.length === 0) return;
+    if (!confirm("¿Estás seguro?")) return;
+    cnResultados.pop();
+    cnRenderListado();
+    if (cnResultados.length === 0) cnBtnGuardar.disabled = true;
+  });
 
   cnBtnLimpiar.addEventListener("click", () => {
     cnLimpiarBox.style.display = "flex";
@@ -3064,7 +3076,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#61 N#62
+  Versión #001 · Actualización A#62 N#63
 </footer>
 
 </body>
