@@ -744,26 +744,26 @@
       <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0;">
         Cords / #
       </label>
-      <button id="coordsNumerosCerrarBtn" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Cerrar</button>
+      <button id="coordsNumerosCerrarBtn" style="background:transparent;border:1px solid #3ddc84;color:#3ddc84;border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Cerrar</button>
     </div>
     <div id="coordsNumerosInactivo" style="font-size:0.8rem; color:var(--muted); display:none;">
       Carga al menos 2 números para activar esta sección.
     </div>
     <div id="coordsNumerosActivo">
       <div id="cnCardinales" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-        <input type="text" id="cnPar" placeholder="Ej: 46" maxlength="2" style="width:80px; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:8px; font-size:1.1rem; font-weight:700;">
-        <button id="cnBtnBuscar" style="flex:1; background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:8px; font-size:0.8rem;">Buscar</button>
+      <div style="display:flex; gap:16px; align-items:center; margin-bottom:8px;">
+        <input type="text" id="cnPar" placeholder="Ej: 46" maxlength="2" style="width:100px; text-align:center; background:#1a1d23; border:2px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:12px; font-size:1.4rem; font-weight:700;">
+        <button id="cnBtnBuscar" style="background:transparent; border:2px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:12px 20px; font-size:1rem; font-weight:700;">Buscar</button>
       </div>
       <div class="error" id="cnError"></div>
       <div id="cnListado" style="margin-top:8px; font-size:0.8rem;"></div>
       <div style="display:flex; gap:8px; margin-top:10px;">
-        <button id="cnBtnGuardar" style="flex:1; background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:10px; font-weight:700;" disabled>Guardar listado</button>
-        <button id="cnBtnLimpiar" style="flex:1; background:transparent; border:1px solid var(--muted); color:var(--muted); border-radius:8px; padding:10px;">Limpiar</button>
+        <button id="cnBtnGuardar" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px; font-weight:700;" disabled>Guardar listado</button>
+        <button id="cnBtnLimpiar" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px;">Limpiar</button>
       </div>
       <div style="display:flex; gap:8px; margin-top:8px; display:none;" id="cnLimpiarBox">
         <input type="password" id="cnLimpiarPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:8px; font-size:0.85rem;">
-        <button id="cnLimpiarConfirmBtn" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:8px;padding:8px 12px;">OK</button>
+        <button id="cnLimpiarConfirmBtn" style="background:transparent;border:1px solid #3ddc84;color:#3ddc84;border-radius:8px;padding:8px 12px;">OK</button>
       </div>
       <div class="error" id="cnLimpiarError"></div>
       <div id="cnGuardados" style="margin-top:10px; font-size:0.78rem;"></div>
@@ -771,7 +771,7 @@
   </div>
   <div class="undo-row" style="margin-top:10px;">
     <input type="password" id="coordsNumerosPinInput" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem;">
-    <button id="coordsNumerosBtn" style="flex:1;">Cords / #</button>
+    <button id="coordsNumerosBtn" style="flex:1; background:transparent; border:2px solid #3ddc84; color:#3ddc84; border-radius:10px; padding:10px; font-weight:700; font-size:0.9rem;">Cords / #</button>
   </div>
   <div class="error" id="coordsNumerosPinError"></div>
   <!-- ══ FIN SECCIÓN NUEVA ══ -->
@@ -2857,9 +2857,9 @@
     const p4 = (p3 + 19) % 38;
     const labels = [["P1", p1], ["P2", p2], ["P3", p3], ["P4", p4]];
     cnCardinales.innerHTML = labels.map(([lbl, idx]) =>
-      `<div style="background:#1a1d23;border:1px solid var(--gold);border-radius:8px;padding:6px 10px;text-align:center;min-width:52px;">
+      `<div style="background:#1a1d23;border:1px solid #3ddc84;border-radius:8px;padding:6px 10px;text-align:center;min-width:52px;">
         <div style="font-size:0.65rem;color:var(--muted);letter-spacing:0.08em;">${lbl}</div>
-        <div style="font-size:1rem;font-weight:800;color:var(--gold);">${SEQUENCE[idx]}</div>
+        <div style="font-size:1rem;font-weight:800;color:#3ddc84;">${SEQUENCE[idx]}</div>
       </div>`
     ).join("");
   }
@@ -2944,6 +2944,14 @@
 
     const coord1 = Math.min(c1, c2);
     const coord2 = Math.max(c1, c2);
+
+    // Verificar si ya fue ingresada esta coordenada
+    const yaExiste = cnResultados.some(r => r.coord1 === coord1 && r.coord2 === coord2 && r.segmento === segNombre);
+    if (yaExiste) {
+      cnError.textContent = "⚠️ Error estas coordenadas ya están ⚠️";
+      return;
+    }
+
     const numeros = cnCoordsToNumbers(coord1, coord2, segLen);
 
     if (numeros.length === 0) {
@@ -3051,10 +3059,11 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#53 N#54
+  Versión #001 · Actualización A#60 N#61
 </footer>
 
 </body>
 </html>
 
+ 
  
