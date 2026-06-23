@@ -2891,6 +2891,11 @@
     const p3 = (p1 + 9) % 38;
     const p4 = (p3 + 19) % 38;
 
+    // Excepción única: coordenada 0/9 devuelve los 4 puntos cardinales
+    if (coord1 === 0 && coord2 === 9) {
+      return [...new Set([SEQUENCE[p1], SEQUENCE[p2], SEQUENCE[p3], SEQUENCE[p4]])];
+    }
+
     const todosSegmentos = [
       { from: p1, to: p3 },
       { from: p3, to: p2 },
@@ -3059,7 +3064,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#60 N#61
+  Versión #001 · Actualización A#61 N#62
 </footer>
 
 </body>
