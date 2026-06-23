@@ -761,6 +761,11 @@
         <button id="cnBtnGuardar" style="flex:1; background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:10px; font-weight:700;" disabled>Guardar listado</button>
         <button id="cnBtnLimpiar" style="flex:1; background:transparent; border:1px solid var(--muted); color:var(--muted); border-radius:8px; padding:10px;">Limpiar</button>
       </div>
+      <div style="display:flex; gap:8px; margin-top:8px; display:none;" id="cnLimpiarBox">
+        <input type="password" id="cnLimpiarPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:8px; font-size:0.85rem;">
+        <button id="cnLimpiarConfirmBtn" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:8px;padding:8px 12px;">OK</button>
+      </div>
+      <div class="error" id="cnLimpiarError"></div>
       <div id="cnGuardados" style="margin-top:10px; font-size:0.78rem;"></div>
     </div>
   </div>
@@ -2840,6 +2845,7 @@
   });
 
   coordsNumerosCerrarBtn.addEventListener("click", () => {
+    if (!confirm("¿Estás seguro de cerrar?")) return;
     coordsNumerosPanel.style.display = "none";
   });
 
@@ -2970,18 +2976,48 @@
       const sorted = sortNums(r.numeros);
       html += `<div style="margin-bottom:6px; font-size:0.85rem; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}</div>`;
     });
-    html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; color:var(--gold); font-weight:700;">Total: ${allNums.join(" - ")}</div>`;
+    const totalTexto = allNums.join(" - ");
+    html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; display:flex; align-items:center; gap:8px;">
+      <span style="color:var(--gold); font-weight:700; flex:1;">Total: ${totalTexto}</span>
+      <button id="cnBtnCopiar" style="background:transparent;border:1px solid #3ddc84;color:#3ddc84;border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Copiar</button>
+    </div>`;
     cnListado.innerHTML = html;
+    document.getElementById("cnBtnCopiar").addEventListener("click", () => {
+      navigator.clipboard.writeText(totalTexto).then(() => {
+        const btn = document.getElementById("cnBtnCopiar");
+        btn.textContent = "✓ Copiado";
+        setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
+      });
+    });
   }
 
   cnBtnBuscar.addEventListener("click", () => cnBuscar());
 
+  const cnLimpiarBox = document.getElementById("cnLimpiarBox");
+  const cnLimpiarPin = document.getElementById("cnLimpiarPin");
+  const cnLimpiarConfirmBtn = document.getElementById("cnLimpiarConfirmBtn");
+  const cnLimpiarError = document.getElementById("cnLimpiarError");
+
   cnBtnLimpiar.addEventListener("click", () => {
+    cnLimpiarBox.style.display = "flex";
+    cnLimpiarPin.value = "";
+    cnLimpiarError.textContent = "";
+    cnLimpiarPin.focus();
+  });
+
+  cnLimpiarConfirmBtn.addEventListener("click", () => {
+    if (cnLimpiarPin.value.trim() !== "7890") {
+      cnLimpiarError.textContent = "Clave incorrecta.";
+      return;
+    }
     cnResultados = [];
     cnListado.innerHTML = "";
     cnError.textContent = "";
     cnPar.value = "";
     cnBtnGuardar.disabled = true;
+    cnLimpiarBox.style.display = "none";
+    cnLimpiarPin.value = "";
+    cnLimpiarError.textContent = "";
   });
 
   cnBtnGuardar.addEventListener("click", () => {
@@ -3015,7 +3051,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#50 N#51
+  Versión #001 · Actualización A#53 N#54
 </footer>
 
 </body>
