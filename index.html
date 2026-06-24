@@ -847,6 +847,12 @@
     </div>
   </div>
 
+  <div class="input-row" style="margin-top:10px;">
+    <input type="password" id="liberacionPinInput" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
+    <button id="liberacionAccesoBtn" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:10px 16px;font-size:0.85rem;font-weight:700;">F R O</button>
+  </div>
+  <div class="error" id="liberacionPinError"></div>
+
   <div id="liberacionPanel" class="section-box" style="display:none; margin-top:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0;">
@@ -1026,7 +1032,10 @@
   const liberacionPanel = document.getElementById("liberacionPanel");
   const liberacionContent = document.getElementById("liberacionContent");
   const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
-  let liberacionUserHidden = false;
+  const liberacionPinInput = document.getElementById("liberacionPinInput");
+  const liberacionPinError = document.getElementById("liberacionPinError");
+  const liberacionAccesoBtn = document.getElementById("liberacionAccesoBtn");
+  let liberacionUserHidden = true; // oculta por defecto, requiere clave
   let manoAlertasActivas = []; // alertas de Coordenadas Macho de la Mano
   let alerta05 = ''; // alerta de coordenadas 0 y 5 juntas en bodega
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
@@ -1635,6 +1644,26 @@
     }
   }
 
+  liberacionAccesoBtn.addEventListener("click", () => {
+    const pin = liberacionPinInput.value.trim();
+    if (pin !== "7890") {
+      liberacionPinError.textContent = "Clave incorrecta.";
+      return;
+    }
+    liberacionPinError.textContent = "";
+    liberacionPinInput.value = "";
+    // Toggle: si está visible, ocultar; si está oculto, mostrar
+    if (liberacionPanel.style.display !== "none") {
+      liberacionPanel.style.display = "none";
+      liberacionUserHidden = true;
+    } else {
+      liberacionPanel.style.display = "block";
+      liberacionContent.style.display = "";
+      liberacionToggleBtn.textContent = "Ocultar";
+      liberacionUserHidden = false;
+    }
+  });
+
   liberacionToggleBtn.addEventListener("click", () => {
     if (liberacionContent.style.display === "none") {
       liberacionContent.style.display = "";
@@ -1917,7 +1946,7 @@
       html += `<div><strong>Jugada #${entry.playNumber ?? '—'}</strong> · Último #: ${entry.ultimoNumero ?? '—'}</div>`;
       html += `<div style="color:var(--muted);">${entry.fecha} · ${entry.hora}</div>`;
       html += `</div>`;
-      html += `<button class="pdf-reprint-btn" data-idx="${idx}" style="flex-shrink:0;">Reimprimir</button>`;
+      html += `<button class="pdf-reprint-btn" data-idx="${idx}" style="flex-shrink:0;">Ver PDF</button>`;
       html += `</div>`;
     });
     pdfHistoryList.innerHTML = html;
@@ -3169,7 +3198,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#77 N#78
+  Versión #001 · Actualización A#85 N#86
 </footer>
 
 </body>
