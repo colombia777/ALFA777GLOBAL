@@ -752,7 +752,7 @@
     <div id="coordsNumerosActivo">
       <div id="cnCardinales" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
       <div style="display:flex; gap:16px; align-items:center; margin-bottom:8px;">
-        <input type="text" id="cnPar" placeholder="Ej: 46" maxlength="2" style="width:100px; text-align:center; background:#1a1d23; border:2px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:12px; font-size:1.4rem; font-weight:700;">
+        <input type="text" id="cnPar" placeholder="Ej: 46" maxlength="2" inputmode="numeric" style="width:100px; text-align:center; background:#1a1d23; border:2px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:12px; font-size:1.4rem; font-weight:700;">
         <button id="cnBtnBuscar" style="background:transparent; border:2px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:12px 20px; font-size:1rem; font-weight:700;">Buscar</button>
       </div>
       <div class="error" id="cnError"></div>
@@ -1692,6 +1692,8 @@
     // de cada grupo (par/trío/...) cuenta los giros desde que su miembro más
     // reciente entró a bodega.
     const bodegaEntradaGiro = new Array(10).fill(null);
+    let ultimasEntradas = []; // coordenadas que entraron juntas en el último giro
+    const paresJuntos = []; // acumula pares [a,b] que entraron juntos y siguen en bodega
 
     // Recorremos todo el historial para mantener el bodegaje al día
     // (el bodegaje SÍ es acumulativo a través de los giros).
@@ -1758,8 +1760,21 @@
         alerta5 = entranNuevos.includes(4) ? 'con4' : 'sola';
       }
 
+      // Pares juntos: si entraron exactamente 2 coordenadas nuevas, registrar el par
+      if (entranNuevos.length === 2) {
+        paresJuntos.push([entranNuevos[0], entranNuevos[1]]);
+      }
+      // Filtrar pares donde al menos una coordenada ya se liberó (salió de bodega)
+      for (let p = paresJuntos.length - 1; p >= 0; p--) {
+        const [a, b] = paresJuntos[p];
+        if (bodega[a] === null || bodega[b] === null) {
+          paresJuntos.splice(p, 1);
+        }
+      }
+
       eventosCargado.push(ocurreCargado);
       eventosLiberado.push(ocurreLiberado);
+      ultimasEntradas = entranNuevos.slice(); // captura del último giro
     }
 
     // ── Proceso 4: rachas en ventanas limitadas ──────────
@@ -1834,6 +1849,8 @@
       active: true,
       bodega,
       bodegaEntradaGiro,
+      ultimasEntradas,
+      paresJuntos,
       totalGiros: chrono.length,
       rachaCargado,
       rachaLiberado,
@@ -2185,6 +2202,13 @@
     //   alertas.push('⚠️ 5 cargo en corta con 4/5  L E C');
     // }
 
+    // Alerta: pares de coordenadas que subieron juntas y siguen ambas en bodega
+    if (result && result.paresJuntos && result.paresJuntos.length > 0) {
+      result.paresJuntos.forEach(([a, b]) => {
+        alertas.push(`⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G`);
+      });
+    }
+
     // Alerta: las coordenadas 0 y 5 están juntas en Módulo Macho · Coordenadas
     // Quedadas. Se indica cuál de las dos subió primero (entrada de giro menor).
     if (result && result.bodega[0] !== null && result.bodega[5] !== null) {
@@ -2389,6 +2413,13 @@
     //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
     // }
 
+    // Observación: pares de coordenadas que subieron juntas y siguen en bodega
+    if (result.paresJuntos && result.paresJuntos.length > 0) {
+      result.paresJuntos.forEach(([a, b]) => {
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
+      });
+    }
+
     // ── Coordenadas Macho de la Mano ────────────────────────
     // Solo se muestra si hay 2+ dígitos en bodega (mínimo "de la mano").
     // Para cada prefijo (par, trío, cuarteto...) en el orden de bodega
@@ -2397,22 +2428,45 @@
     // más reciente) y avanza -1 cada giro mientras ese grupo siga existiendo.
     if (bodegaOrdenada.length >= 2) {
       let manoHtml = "";
+      const manoAlertas = [];
       for (let i = 1; i < bodegaOrdenada.length; i++) {
         const grupo = bodegaOrdenada.slice(0, i + 1);
         const etiqueta = grupo.map(g => g.digito).join("");
-        // El miembro más reciente del grupo = el que entró en el giro más alto
         let entradaMasReciente = -1;
         grupo.forEach(g => {
           const entrada = result.bodegaEntradaGiro[g.digito];
           if (entrada !== null && entrada > entradaMasReciente) entradaMasReciente = entrada;
         });
-        // Giros transcurridos desde que el grupo se completó (inclusive = -1)
         const girosTranscurridos = (result.totalGiros - 1) - entradaMasReciente;
-        const conteo = -(girosTranscurridos + 1); // arranca en -1
+        const conteo = -(girosTranscurridos + 1);
         manoHtml += `<div class="quedada-chip"><div class="digit">${etiqueta}</div><div class="count">${conteo}</div></div>`;
+
+        // Observaciones por permanencia conjunta
+        const digitos = grupo.map(g => g.digito).join(" - ");
+        if (grupo.length === 2 && conteo <= -10) {
+          manoAlertas.push(`⚠️ ${digitos} juntos más de 10 veces`);
+        } else if (grupo.length === 3 && conteo <= -6) {
+          manoAlertas.push(`⚠️ ${digitos} juntos más de 6 veces`);
+        } else if (grupo.length === 4 && conteo <= -3) {
+          manoAlertas.push(`⚠️ ${digitos} juntos más de 3 veces`);
+        }
       }
       machoManoContent.innerHTML = manoHtml;
       machoManoBox.style.display = "block";
+
+      // Mostrar alertas dentro del panel y en Observaciones Relevantes
+      if (manoAlertas.length > 0) {
+        const manoAlertaDiv = document.createElement("div");
+        manoAlertaDiv.style.cssText = "width:100%; margin-top:8px;";
+        manoAlertaDiv.innerHTML = manoAlertas.map(a => `<div style="color:var(--gold); margin-bottom:4px;">${a}</div>`).join("");
+        machoManoContent.parentElement.appendChild(manoAlertaDiv);
+
+        // Agregar a Observaciones Relevantes
+        const existentes = alertasPeligrosContent.innerHTML;
+        const nuevas = manoAlertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join("");
+        alertasPeligrosContent.innerHTML = existentes + nuevas;
+        alertasPeligrosPanel.style.display = "block";
+      }
     } else {
       machoManoContent.innerHTML = "";
       machoManoBox.style.display = "none";
@@ -3076,7 +3130,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#62 N#63
+  Versión #001 · Actualización A#66 N#67
 </footer>
 
 </body>
