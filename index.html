@@ -873,8 +873,10 @@
   <div id="printArea" style="display:none;"></div>
 
   <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
+    <input type="password" id="pdfHistoryPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
     <button id="pdfHistoryBtn" style="flex:1;">Ver historial de PDFs</button>
   </div>
+  <div class="error" id="pdfHistoryPinError"></div>
   <div id="pdfHistorySection" style="display:none; margin-top:10px;">
     <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
       Historial de Trazabilidad de PDFs
@@ -898,9 +900,6 @@
     <button id="resetCancelBtn" style="margin-top:8px; width:100%; background:transparent;border:1px solid #2f333a;color:#3ddc84;">No estoy seguro</button>
   </div>
 
-  <div class="undo-row" style="margin-top:24px; padding-top:14px; border-top:1px solid #2a2d33;">
-    <button id="exportPdfBtn" style="flex:1;" title="Ingresa clave 7890 para exportar PDF">Exportar PDF</button>
-  </div>
   <div class="undo-row" style="margin-top:6px;">
     <input type="password" id="dataPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem;">
   </div>
@@ -1011,7 +1010,6 @@
   const reportNoVanMacho = document.getElementById("reportNoVanMacho");
   const reportFuertes = document.getElementById("reportFuertes");
   const reportC5C10Iguales = document.getElementById("reportC5C10Iguales");
-  const exportPdfBtn = document.getElementById("exportPdfBtn");
   const exportDataBtn = document.getElementById("exportDataBtn");
   const importDataBtn = document.getElementById("importDataBtn");
   const importDataInput = document.getElementById("importDataInput");
@@ -1019,6 +1017,8 @@
   const dataPinMsg = document.getElementById("dataPinMsg");
   const pdfHistoryBtn = document.getElementById("pdfHistoryBtn");
   const pdfHistorySection = document.getElementById("pdfHistorySection");
+  const pdfHistoryPin = document.getElementById("pdfHistoryPin");
+  const pdfHistoryPinError = document.getElementById("pdfHistoryPinError");
   const pdfHistoryList = document.getElementById("pdfHistoryList");
   const quedadasPanel = document.getElementById("quedadasPanel");
   const quedadasBodega = document.getElementById("quedadasBodega");
@@ -1968,9 +1968,20 @@
   }
 
   pdfHistoryBtn.addEventListener("click", () => {
-    const isHidden = pdfHistorySection.style.display === "none";
-    pdfHistorySection.style.display = isHidden ? "block" : "none";
-    if (isHidden) renderPdfHistory();
+    if (pdfHistorySection.style.display !== "none") {
+      pdfHistorySection.style.display = "none";
+      pdfHistoryPin.value = "";
+      pdfHistoryPinError.textContent = "";
+      return;
+    }
+    if (pdfHistoryPin.value.trim() !== "7890") {
+      pdfHistoryPinError.textContent = "Clave incorrecta.";
+      return;
+    }
+    pdfHistoryPinError.textContent = "";
+    pdfHistoryPin.value = "";
+    pdfHistorySection.style.display = "block";
+    renderPdfHistory();
   });
 
   // Reconstruye temporalmente toda la interfaz a partir de un snapshot
@@ -2835,30 +2846,6 @@
     }
   });
 
-  // Botón guía para mediano plazo: funcionará al abrir el archivo en un
-  // navegador real (Chrome) o tras subirlo a GitHub Pages. En el visor
-  // actual, window.print() puede no estar disponible.
-  exportPdfBtn.addEventListener("click", () => {
-    if (dataPin.value !== "7890") {
-      dataPinMsg.style.color = "var(--red)";
-      dataPinMsg.textContent = "Clave incorrecta para exportar PDF.";
-      dataPin.value = "";
-      return;
-    }
-    dataPin.value = "";
-    dataPinMsg.textContent = "";
-    const wasOpen = reportPanel.style.display !== "none";
-    renderReport();
-    if (!wasOpen) reportPanel.style.display = "none";
-    renderPrintArea();
-    try {
-      window.print();
-    } catch (e) {
-      dataPinMsg.style.color = "var(--red)";
-      dataPinMsg.textContent = "Exportar PDF requiere abrir este archivo en un navegador (Chrome).";
-    }
-  });
-
   // ── Exportar / Importar trazabilidad ────────────────────
   // Permite respaldar y restaurar `history` + `playCounter` como archivo
   // JSON, para migrar la trazabilidad entre navegadores/dispositivos sin
@@ -3198,7 +3185,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#85 N#86
+  Versión #001 · Actualización A#87 N#88
 </footer>
 
 </body>
