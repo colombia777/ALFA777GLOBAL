@@ -1027,6 +1027,7 @@
   const liberacionContent = document.getElementById("liberacionContent");
   const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
   let liberacionUserHidden = false;
+  let manoAlertasActivas = []; // alertas de Coordenadas Macho de la Mano
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
   const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
@@ -2029,6 +2030,12 @@
       // if (result.alerta5 === 'con4') {
       //   html += `<div style="margin-top:2mm; color:#8a6d00;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
       // }
+      // Pares juntos que persisten en bodega
+      if (result.paresJuntos && result.paresJuntos.length > 0) {
+        result.paresJuntos.forEach(([a, b]) => {
+          html += `<div style="margin-top:1mm; color:#8a6d00;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
+        });
+      }
       html += '</div>';
 
       html += '</div>';
@@ -2373,6 +2380,11 @@
       }
     }
 
+    // Agregar alertas de Coordenadas Macho de la Mano
+    if (manoAlertasActivas && manoAlertasActivas.length > 0) {
+      manoAlertasActivas.forEach(a => alertas.push(a));
+    }
+
     if (alertas.length > 0) {
       alertasPeligrosContent.innerHTML = alertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join('');
       alertasPeligrosPanel.style.display = "block";
@@ -2445,8 +2457,8 @@
         const digitos = grupo.map(g => g.digito).join(" - ");
         if (grupo.length === 2 && conteo <= -10) {
           manoAlertas.push(`⚠️ ${digitos} juntos más de 10 veces`);
-        } else if (grupo.length === 3 && conteo <= -6) {
-          manoAlertas.push(`⚠️ ${digitos} juntos más de 6 veces`);
+        } else if (grupo.length === 3 && conteo <= -5) {
+          manoAlertas.push(`⚠️ ${digitos} juntos más de 5 veces`);
         } else if (grupo.length === 4 && conteo <= -3) {
           manoAlertas.push(`⚠️ ${digitos} juntos más de 3 veces`);
         }
@@ -2454,18 +2466,19 @@
       machoManoContent.innerHTML = manoHtml;
       machoManoBox.style.display = "block";
 
-      // Mostrar alertas dentro del panel y en Observaciones Relevantes
+      // Limpiar div de alertas anterior para evitar duplicados
+      const prevManoAlertaDiv = machoManoContent.parentElement.querySelector(".mano-alerta-div");
+      if (prevManoAlertaDiv) prevManoAlertaDiv.remove();
+
+      // Guardar alertas en variable global para que renderAlertasPeligros las incluya
+      manoAlertasActivas = manoAlertas;
+
       if (manoAlertas.length > 0) {
         const manoAlertaDiv = document.createElement("div");
+        manoAlertaDiv.className = "mano-alerta-div";
         manoAlertaDiv.style.cssText = "width:100%; margin-top:8px;";
         manoAlertaDiv.innerHTML = manoAlertas.map(a => `<div style="color:var(--gold); margin-bottom:4px;">${a}</div>`).join("");
         machoManoContent.parentElement.appendChild(manoAlertaDiv);
-
-        // Agregar a Observaciones Relevantes
-        const existentes = alertasPeligrosContent.innerHTML;
-        const nuevas = manoAlertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join("");
-        alertasPeligrosContent.innerHTML = existentes + nuevas;
-        alertasPeligrosPanel.style.display = "block";
       }
     } else {
       machoManoContent.innerHTML = "";
@@ -3130,11 +3143,12 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#66 N#67
+  Versión #001 · Actualización A#69 N#70
 </footer>
 
 </body>
 </html>
 
+ 
  
  
