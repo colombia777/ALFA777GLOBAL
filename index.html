@@ -1028,6 +1028,7 @@
   const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
   let liberacionUserHidden = false;
   let manoAlertasActivas = []; // alertas de Coordenadas Macho de la Mano
+  let alerta05 = ''; // alerta de coordenadas 0 y 5 juntas en bodega
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
   const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
@@ -1388,14 +1389,31 @@
     let pctTabla = 0;
     freq.forEach(c => { if (c >= 3) pctTabla += c * 10; });
 
-    // Alerta de "potencial descanso": repetición de esta tabla > 120%
-    // combinada con Descanso en racha negativa (módulo Macho).
     const quedadas = computeQuedadas();
+
+    // OBSERVACIÓN PENDIENTE A VISUALIZAR — desactivada temporalmente, lógica intacta
+    // Reactiva cuando se necesite: quitar el bloque de comentarios /* */
+    /* Alerta de "potencial descanso": repetición de esta tabla > 120%
+    // combinada con Descanso en racha negativa (módulo Macho).
     if (quedadas.active && pctTabla > 120 && quedadas.rachaDescanso < 0) {
       reportDescansoAlert.innerHTML = `⚠ Potencial descanso: repetición de coordenadas al ${pctTabla}% + Descanso en racha ${quedadas.rachaDescanso}.`;
       reportDescansoAlert.style.color = "var(--gold)";
     } else {
       reportDescansoAlert.innerHTML = "";
+    }
+    */
+    reportDescansoAlert.innerHTML = "";
+    // Alerta 5/5
+    if (history.length > 0 && history[0].coords &&
+        history[0].coords[0] === 5 && history[0].coords[1] === 5) {
+      reportDescansoAlert.innerHTML = '⚠️ 5/5 no se repite C1 en próximo giro';
+      reportDescansoAlert.style.color = "var(--gold)";
+    }
+    // Alerta 2 números repetidos
+    if (history.length >= 2 && history[0].num === history[1].num) {
+      const sep = reportDescansoAlert.innerHTML ? ' · ' : '';
+      reportDescansoAlert.innerHTML += sep + '⚠ 2 números repetidos en últimas 2 jugadas';
+      reportDescansoAlert.style.color = "var(--gold)";
     }
 
     // ── Coordenadas que no van a Módulo Macho ──────────────
@@ -1497,23 +1515,7 @@
 
       if (c5Low === c10Low && c5High === c10High) {
         c5c10IgualesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold);">${c5Low} / ${c5High}</div>`;
-
-        // Apoyo: ¿estas coordenadas coinciden con "Jugada Potencial a
-        // Repetición de Coordenadas más Fuertes" (faltantes)?
-        const lowEnFaltantes = faltantes.includes(c5Low);
-        const highEnFaltantes = faltantes.includes(c5High);
-
-        if (lowEnFaltantes || highEnFaltantes) {
-          const coincidentes = [c5Low, c5High].filter(d => faltantes.includes(d));
-          c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">Apoyo: coordenada(s) ${coincidentes.join(", ")} coincide(n) con "Jugada Potencial a Repetición" → potencial CARGADO a bodega Módulo Macho.</div>`;
-        } else {
-          c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">No coincide con "Jugada Potencial a Repetición" → potencial LIBERADO de bodega Módulo Macho (no cargado).</div>`;
-        }
-
-        // Nota de descanso (solo informativa)
-        if (quedadas.active && quedadas.rachaDescanso <= -4) {
-          c5c10IgualesHtml += `<div style="margin-top:6px; font-size:0.75rem; color:var(--muted);">Nota: Descanso en racha ${quedadas.rachaDescanso} (4+ veces sin descansar) — esto podría dañar el "cargado" y favorecer más bien el "liberado".</div>`;
-        }
+        c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">⚠️ Cords C5 C10 iguales sube 1/2 a módulo machos si MM no Descansa</div>`;
       } else {
         c5c10IgualesHtml += `<div style="font-size:0.85rem;">—</div>`;
       }
@@ -2010,6 +2012,12 @@
           const conteo = -((result.totalGiros - 1 - entradaMax) + 1);
           html += `<div style="${CHIP}"><div style="font-weight:800;">${etiqueta}</div><div style="color:#b3261e; font-weight:800;">${conteo}</div></div>`;
         }
+        // Alertas de permanencia conjunta en PDF
+        if (manoAlertasActivas && manoAlertasActivas.length > 0) {
+          manoAlertasActivas.forEach(a => {
+            html += `<div style="margin-top:1mm; color:#8a6d00; font-size:0.75rem;">${a}</div>`;
+          });
+        }
         html += '</div></div>';
       } else {
         html += `<div style="${BLK} flex:1;"></div>`;
@@ -2036,6 +2044,10 @@
           html += `<div style="margin-top:1mm; color:#8a6d00;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
         });
       }
+      // Alerta 0/5 en PDF
+      if (alerta05) {
+        html += `<div style="margin-top:1mm; color:#8a6d00;">${alerta05}</div>`;
+      }
       html += '</div>';
 
       html += '</div>';
@@ -2051,6 +2063,15 @@
       html += `<div style="${BLK} flex:1;">`;
       html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
       html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
+      // Alerta 5/5 en PDF
+      if (history.length > 0 && history[0].coords &&
+          history[0].coords[0] === 5 && history[0].coords[1] === 5) {
+        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ 5/5 no se repite C1 en próximo giro</div>`;
+      }
+      // Alerta 2 números repetidos en PDF
+      if (history.length >= 2 && history[0].num === history[1].num) {
+        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠ 2 números repetidos en últimas 2 jugadas</div>`;
+      }
       html += '</div>';
 
       html += `<div style="flex:1; display:flex; flex-direction:column; gap:1mm;">`;
@@ -2136,7 +2157,7 @@
         if (hayC5C10) {
           html += `<div style="${BLK} flex:1;">`;
           html += `<div style="${TTL}">Columnas 5 y 10 Coordenadas Iguales</div>`;
-          html += `<div>⚠️ Posible cord de C5 C10  suba a bodega M M</div>`;
+          html += `<div style="color:#8a6d00; font-weight:700;">⚠️ Cords C5 C10 iguales sube 1/2 a módulo machos si MM no Descansa</div>`;
           html += '</div>';
         } else {
           html += `<div style="${BLK} flex:1;"></div>`;
@@ -2191,14 +2212,14 @@
   function renderAlertasPeligros(result) {
     const alertas = [];
 
-    // Alerta: el último número cargado tiene coordenadas 5/5
-    if (history.length > 0 && history[0].coords) {
-      const c0 = history[0].coords[0];
-      const c1 = history[0].coords[1];
-      if (c0 === 5 && c1 === 5) {
-        alertas.push('⚠️ 5/5 no se repite C1 en próximo giro');
-      }
-    }
+    // Alerta 5/5 movida a sección "Últimos 12 giros" en pantalla y PDF
+    // if (history.length > 0 && history[0].coords) {
+    //   const c0 = history[0].coords[0];
+    //   const c1 = history[0].coords[1];
+    //   if (c0 === 5 && c1 === 5) {
+    //     alertas.push('⚠️ 5/5 no se repite C1 en próximo giro');
+    //   }
+    // }
 
     // ANULADO: los mensajes de alerta5 ('sola' y 'con4') se desactivaron porque
     // sugerían predicciones (largas/cortas) que son una falacia — demostrado en campo.
@@ -2209,30 +2230,34 @@
     //   alertas.push('⚠️ 5 cargo en corta con 4/5  L E C');
     // }
 
-    // Alerta: pares de coordenadas que subieron juntas y siguen ambas en bodega
-    if (result && result.paresJuntos && result.paresJuntos.length > 0) {
-      result.paresJuntos.forEach(([a, b]) => {
-        alertas.push(`⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G`);
-      });
-    }
+    // Alerta pares juntos movida a Módulo Macho · Coordenadas Quedadas (pantalla y PDF)
+    // if (result && result.paresJuntos && result.paresJuntos.length > 0) {
+    //   result.paresJuntos.forEach(([a, b]) => {
+    //     alertas.push(`⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G`);
+    //   });
+    // }
 
     // Alerta: las coordenadas 0 y 5 están juntas en Módulo Macho · Coordenadas
     // Quedadas. Se indica cuál de las dos subió primero (entrada de giro menor).
+    // MOVIDA a pantalla y PDF de Módulo Macho directamente (no a Observaciones Relevantes)
     if (result && result.bodega[0] !== null && result.bodega[5] !== null) {
       const entrada0 = result.bodegaEntradaGiro[0];
       const entrada5 = result.bodegaEntradaGiro[5];
       if (entrada0 < entrada5) {
-        alertas.push('⚠️ 0 subió primero que 5');
+        alerta05 = '⚠️ 0 subió primero que 5';
       } else if (entrada5 < entrada0) {
-        alertas.push('⚠️ 5 subió primero que 0');
+        alerta05 = '⚠️ 5 subió primero que 0';
+      } else {
+        alerta05 = '';
       }
+    } else {
+      alerta05 = '';
     }
 
-    // Alerta: el mismo número registrado se repitió en las 2 jugadas más
-    // recientes (ej. #37 = 1, #38 = 1).
-    if (history.length >= 2 && history[0].num === history[1].num) {
-      alertas.push('⚠ Alerta 2 números repetidos en últimas 2 jugadas: tener precaución.');
-    }
+    // Alerta de números repetidos movida a sección "Últimos 12 giros"
+    // if (history.length >= 2 && history[0].num === history[1].num) {
+    //   alertas.push('⚠ Alerta 2 números repetidos en últimas 2 jugadas: tener precaución.');
+    // }
 
     // Alertas de Rachas (Cargado / Liberado / Descanso): se muestra únicamente
     // el umbral más extremo alcanzado por cada racha (no se acumulan varios
@@ -2380,11 +2405,7 @@
       }
     }
 
-    // Agregar alertas de Coordenadas Macho de la Mano
-    if (manoAlertasActivas && manoAlertasActivas.length > 0) {
-      manoAlertasActivas.forEach(a => alertas.push(a));
-    }
-
+    // Alertas de Coordenadas Macho de la Mano van solo a su propia sección, no aquí
     if (alertas.length > 0) {
       alertasPeligrosContent.innerHTML = alertas.map(a => `<div style="margin-bottom:6px;">${a}</div>`).join('');
       alertasPeligrosPanel.style.display = "block";
@@ -2430,6 +2451,11 @@
       result.paresJuntos.forEach(([a, b]) => {
         quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
       });
+    }
+
+    // Alerta 0/5: cuál subió primero
+    if (alerta05) {
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">${alerta05}</div>`;
     }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
@@ -3143,7 +3169,7 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#69 N#70
+  Versión #001 · Actualización A#77 N#78
 </footer>
 
 </body>
