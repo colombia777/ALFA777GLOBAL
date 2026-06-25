@@ -644,7 +644,7 @@
 </div>
 
 <div style="width:min(96vw, 460px); display:flex; align-items:center; gap:8px; margin-top:16px;">
-  <input type="password" id="verRuletaPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem; text-align:center;">
+  <input type="password" id="verRuletaPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem; text-align:center;">
   <button id="verRuletaBtn" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:10px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">V - R</button>
 </div>
 <div class="error" id="verRuletaError"></div>
@@ -668,13 +668,16 @@
 <div class="panel">
   <label for="numberInput">Registrar número (dato histórico)</label>
   <div class="input-row">
-    <input type="text" id="numberInput" placeholder="0–36, 00" inputmode="numeric" maxlength="2">
+    <input type="text" id="numberInput" placeholder="0–36, 00" inputmode="numeric" maxlength="2" style="max-width:80px; flex:none;">
+    <input type="password" id="loadPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
     <button id="loadBtn">Cargar</button>
+    <button id="loadBloquearBtn" style="display:none; background:transparent; border:1px solid var(--muted); color:var(--muted); border-radius:8px; padding:10px 12px; font-size:0.8rem;">🔒</button>
   </div>
+  <div class="error" id="loadPinError"></div>
   <div class="error" id="errorMsg"></div>
 
   <div class="undo-row">
-    <input type="password" id="undoPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4">
+    <input type="password" id="undoPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none;">
     <button id="undoBtn">Deshacer U/C</button>
   </div>
   <div class="error" id="undoErrorMsg"></div>
@@ -682,7 +685,7 @@
   <div id="undoConfirmBox" style="display:none; margin-top:10px; padding:10px; border:1px solid #b3261e; border-radius:8px; background:rgba(179,38,30,0.1);">
     <p style="color:#ff8a80; font-size:0.78rem; margin:0 0 8px;">⚠ ¿Está seguro? Esta acción deshace la última carga. Ingrese la clave nuevamente para confirmar.</p>
     <div class="input-row">
-      <input type="password" id="undoConfirmPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
+      <input type="password" id="undoConfirmPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center;">
       <button id="undoConfirmBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Confirmar</button>
     </div>
     <div class="error" id="undoConfirmErrorMsg"></div>
@@ -771,7 +774,7 @@
     </div>
   </div>
   <div class="undo-row" style="margin-top:10px;">
-    <input type="password" id="coordsNumerosPinInput" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px 16px; font-size:0.85rem;">
+    <input type="password" id="coordsNumerosPinInput" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
     <button id="coordsNumerosBtn" style="flex:1; background:transparent; border:2px solid #3ddc84; color:#3ddc84; border-radius:10px; padding:10px; font-weight:700; font-size:0.9rem;">Cords / #</button>
   </div>
   <div class="error" id="coordsNumerosPinError"></div>
@@ -848,7 +851,7 @@
   </div>
 
   <div class="input-row" style="margin-top:10px;">
-    <input type="password" id="liberacionPinInput" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="flex:1; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
+    <input type="password" id="liberacionPinInput" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
     <button id="liberacionAccesoBtn" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:10px 16px;font-size:0.85rem;font-weight:700;">F R O</button>
   </div>
   <div class="error" id="liberacionPinError"></div>
@@ -885,7 +888,7 @@
   </div>
 
   <div class="input-row" style="margin-top:10px;">
-    <input type="password" id="resetPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
+    <input type="password" id="resetPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center;">
     <button id="resetBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Reiniciar numeración</button>
   </div>
   <div class="error" id="resetErrorMsg"></div>
@@ -893,7 +896,7 @@
   <div id="resetConfirmBox" style="display:none; margin-top:10px; padding:10px; border:1px solid #b3261e; border-radius:8px; background:rgba(179,38,30,0.1);">
     <p style="color:#ff8a80; font-size:0.78rem; margin:0 0 8px;">⚠ Está seguro de eliminar. Recuerde que esta acción elimina toda la trazabilidad de este navegador y usuario. Ingrese la clave nuevamente para confirmar.</p>
     <div class="input-row">
-      <input type="password" id="resetConfirmPin" placeholder="Clave de 4 dígitos" inputmode="numeric" maxlength="4" style="text-align:center;">
+      <input type="password" id="resetConfirmPin" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center;">
       <button id="resetConfirmBtn" style="background:transparent;border:1px solid #b3261e;color:#ff8a80;">Confirmar borrado</button>
     </div>
     <div class="error" id="resetConfirmErrorMsg"></div>
@@ -950,6 +953,9 @@
   const centerValue = document.getElementById("centerValue");
   const numberInput = document.getElementById("numberInput");
   const loadBtn = document.getElementById("loadBtn");
+  const loadPin = document.getElementById("loadPin");
+  const loadPinError = document.getElementById("loadPinError");
+  const loadBloquearBtn = document.getElementById("loadBloquearBtn");
   const errorMsg = document.getElementById("errorMsg");
   const resetErrorMsg = document.getElementById("resetErrorMsg");
   const historyList = document.getElementById("historyList");
@@ -2277,22 +2283,15 @@
     //   });
     // }
 
-    // Alerta: las coordenadas 0 y 5 están juntas en Módulo Macho · Coordenadas
-    // Quedadas. Se indica cuál de las dos subió primero (entrada de giro menor).
-    // MOVIDA a pantalla y PDF de Módulo Macho directamente (no a Observaciones Relevantes)
-    if (result && result.bodega[0] !== null && result.bodega[5] !== null) {
-      const entrada0 = result.bodegaEntradaGiro[0];
-      const entrada5 = result.bodegaEntradaGiro[5];
-      if (entrada0 < entrada5) {
-        alerta05 = '⚠️ 0 subió primero que 5';
-      } else if (entrada5 < entrada0) {
-        alerta05 = '⚠️ 5 subió primero que 0';
-      } else {
-        alerta05 = '';
-      }
-    } else {
-      alerta05 = '';
-    }
+    // ANULADO: alerta05 ('0 subió primero que 5' y viceversa) — falacia comprobada en campo
+    // if (result && result.bodega[0] !== null && result.bodega[5] !== null) {
+    //   const entrada0 = result.bodegaEntradaGiro[0];
+    //   const entrada5 = result.bodegaEntradaGiro[5];
+    //   if (entrada0 < entrada5) { alerta05 = '⚠️ 0 subió primero que 5'; }
+    //   else if (entrada5 < entrada0) { alerta05 = '⚠️ 5 subió primero que 0'; }
+    //   else { alerta05 = ''; }
+    // } else { alerta05 = ''; }
+    alerta05 = ''; // siempre vacío
 
     // Alerta de números repetidos movida a sección "Últimos 12 giros"
     // if (history.length >= 2 && history[0].num === history[1].num) {
@@ -2594,9 +2593,43 @@
     quedadasPanel.style.display = "block";
   }
 
-  loadBtn.addEventListener("click", loadNumber);
+  let loadDesbloqueado = false;
+
+  loadBloquearBtn.addEventListener("click", () => {
+    if (!confirm("🔐 ¿Estás seguro? No vas a cargar más números.")) return;
+    loadDesbloqueado = false;
+    loadBloquearBtn.style.display = "none";
+    loadPinError.textContent = "";
+  });
+
+  loadBtn.addEventListener("click", () => {
+    if (!loadDesbloqueado) {
+      if (loadPin.value.trim() !== "7890") {
+        loadPinError.textContent = "Clave incorrecta.";
+        return;
+      }
+      loadPinError.textContent = "";
+      loadPin.value = "";
+      loadDesbloqueado = true;
+      loadBloquearBtn.style.display = "";
+    }
+    loadNumber();
+  });
+
   numberInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") loadNumber();
+    if (e.key === "Enter") {
+      if (!loadDesbloqueado) {
+        if (loadPin.value.trim() !== "7890") {
+          loadPinError.textContent = "Clave incorrecta.";
+          return;
+        }
+        loadPinError.textContent = "";
+        loadPin.value = "";
+        loadDesbloqueado = true;
+        loadBloquearBtn.style.display = "";
+      }
+      loadNumber();
+    }
   });
 
   verRuletaBtn.addEventListener("click", () => {
@@ -3185,12 +3218,13 @@
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
   ⚖️ Este software no enseña a ganar. Enseña por qué nadie le gana al azar.<br>
   ⚠️ La suerte no existe, solo el proceso duro e inteligente 🧠 lleva a ella.<br>
-  Versión #001 · Actualización A#87 N#88
+  Versión #001 · Actualización A#100 N#101
 </footer>
 
 </body>
 </html>
 
+ 
  
  
  
