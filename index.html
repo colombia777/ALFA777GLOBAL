@@ -764,6 +764,9 @@
       </div>
       <div class="error" id="cnError"></div>
       <div id="cnListado" style="margin-top:8px; font-size:0.8rem;"></div>
+      <div style="margin-top:8px; display:none;" id="cnTotalRow">
+        <button id="cnBtnCopiar" style="background:transparent;border:1px solid #3ddc84;color:#3ddc84;border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;width:100%;">Copiar todo</button>
+      </div>
       <div style="display:flex; gap:8px; margin-top:10px;">
         <button id="cnBtnGuardar" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px; font-weight:700;" disabled>Guardar listado</button>
         <button id="cnBtnDeshacer" style="flex:1; background:transparent; border:1px solid #3ddc84; color:#3ddc84; border-radius:8px; padding:10px;" disabled>Deshacer</button>
@@ -2640,7 +2643,7 @@
 
   verRuletaBtn.addEventListener("click", () => {
     const pin = verRuletaPin.value.trim();
-    if (pin !== "7890") {
+    if (pin !== "0987") {
       verRuletaError.textContent = "Clave incorrecta.";
       return;
     }
@@ -2651,7 +2654,7 @@
 
   resetBtn.addEventListener("click", () => {
     const pin = resetPin.value.trim();
-    if (pin !== "7890") {
+    if (pin !== "0987") {
       resetErrorMsg.textContent = "Clave incorrecta. No se reinició la sesión.";
       return;
     }
@@ -2663,7 +2666,7 @@
 
   resetConfirmBtn.addEventListener("click", () => {
     const pin = resetConfirmPin.value.trim();
-    if (pin !== "7890") {
+    if (pin !== "0987") {
       resetConfirmErrorMsg.textContent = "Clave incorrecta. No se reinició la sesión.";
       return;
     }
@@ -3122,11 +3125,15 @@
     cnBtnGuardar.disabled = false;
   }
 
+  const cnBtnCopiar = document.getElementById("cnBtnCopiar");
+  const cnTotalRow = document.getElementById("cnTotalRow");
+
   function cnRenderListado() {
     if (cnResultados.length === 0) {
       cnListado.innerHTML = "";
       cnBtnGuardar.disabled = true;
       cnBtnDeshacer.disabled = true;
+      cnTotalRow.style.display = "none";
       return;
     }
     cnBtnDeshacer.disabled = false;
@@ -3143,19 +3150,53 @@
       html += `<div style="margin-bottom:6px; font-size:0.85rem; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}</div>`;
     });
     const totalTexto = allNums.join(" - ");
-    html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; display:flex; align-items:center; gap:8px;">
-      <span style="color:var(--gold); font-weight:700; flex:1;">Total: ${totalTexto}</span>
-      <button id="cnBtnCopiar" style="background:transparent;border:1px solid #3ddc84;color:#3ddc84;border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Copiar</button>
-    </div>`;
+    html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; color:var(--gold); font-weight:700;">Total: ${totalTexto}</div>`;
     cnListado.innerHTML = html;
-    document.getElementById("cnBtnCopiar").addEventListener("click", () => {
-      navigator.clipboard.writeText(totalTexto).then(() => {
-        const btn = document.getElementById("cnBtnCopiar");
-        btn.textContent = "✓ Copiado";
-        setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
-      });
-    });
+    cnTotalRow.style.display = "block";
   }
+
+  cnBtnCopiar.addEventListener("click", () => {
+    if (cnResultados.length === 0) {
+      cnError.textContent = "No hay coordenadas para copiar.";
+      return;
+    }
+    const sortNums = arr => [...arr].sort((a, b) => {
+      const na = a === '00' ? -1 : parseInt(a);
+      const nb = b === '00' ? -1 : parseInt(b);
+      return na - nb;
+    });
+    const totalNums = sortNums([...new Set(cnResultados.flatMap(r => r.numeros))]);
+    const ahora = new Date();
+    const diasSemana = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const fechaTexto = `${diasSemana[ahora.getDay()]} ${ahora.getDate()} ${meses[ahora.getMonth()]}`;
+    const jugadaNueva = playCounter + 1;
+    let lineas = 'Coordenadas L/C Números\n';
+    cnResultados.forEach(r => {
+      const abrev = r.segmento === 'Largo' ? 'L' : 'C';
+      const sorted = sortNums(r.numeros);
+      lineas += `Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(' - ')}\n`;
+    });
+    lineas += `\nFecha: ${fechaTexto}\n`;
+    lineas += `Número jugada nueva #${jugadaNueva}\n`;
+    lineas += `Total N/S cobijado =${totalNums.length}\n`;
+    lineas += `Números a cobijar\n`;
+    lineas += totalNums.join(' - ');
+
+    // Usar textarea oculto para copiar de forma confiable
+    const ta = document.createElement('textarea');
+    ta.value = lineas;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+
+    cnBtnCopiar.textContent = "✓ Copiado";
+    setTimeout(() => { cnBtnCopiar.textContent = "Copiar todo"; }, 2000);
+  });
 
   cnBtnBuscar.addEventListener("click", () => cnBuscar());
 
@@ -3223,7 +3264,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión #001 · Actualización A#114 N#115<br>
+  Versión 1.5.0 · Actualización A#120 N#121<br>
   Jose Alex N-R
 </footer>
 
