@@ -802,7 +802,7 @@
         Módulo Macho · Coordenadas Quedadas
       </label>
 
-      <div style="display:flex; gap:6px; flex-wrap:wrap;" id="quedadasBodega"></div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; color:#fff;" id="quedadasBodega"></div>
     </div>
 
     <div class="section-box" id="machoManoBox" style="display:none; margin-top:14px;">
@@ -2094,7 +2094,7 @@
         // Alertas de permanencia conjunta en PDF
         if (manoAlertasActivas && manoAlertasActivas.length > 0) {
           manoAlertasActivas.forEach(a => {
-            html += `<div style="margin-top:1mm; color:#8a6d00; font-size:0.75rem;">${a}</div>`;
+            html += `<div style="margin-top:1mm; color:#000000; font-size:0.75rem;">${a}</div>`;
           });
         }
         html += '</div></div>';
@@ -2115,50 +2115,48 @@
       }
       // ANULADO: mensaje de alerta5 en PDF (falacia)
       // if (result.alerta5 === 'con4') {
-      //   html += `<div style="margin-top:2mm; color:#8a6d00;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+      //   html += `<div style="margin-top:2mm; color:#000000;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
       // }
       // Pares juntos que persisten en bodega
       if (result.paresJuntos && result.paresJuntos.length > 0) {
         result.paresJuntos.forEach(([a, b]) => {
-          html += `<div style="margin-top:1mm; color:#8a6d00;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
+          html += `<div style="margin-top:1mm; color:#000000;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
         });
       }
       // Alerta 0/5 en PDF
       if (alerta05) {
-        html += `<div style="margin-top:1mm; color:#8a6d00;">${alerta05}</div>`;
+        html += `<div style="margin-top:1mm; color:#000000;">${alerta05}</div>`;
       }
       // Tendencia MM en PDF
       const totalEnBodegaPdf = result.bodega.filter(v => v !== null).length;
       if (totalEnBodegaPdf <= 1) {
-        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LLENADO</div>`;
+        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LLENADO</div>`;
       } else if (totalEnBodegaPdf >= 6) {
-        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LIBERADO</div>`;
+        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LIBERADO</div>`;
       }
       // Observación G-A en PDF
       if (result.ultimoEvento) {
         const ev = result.ultimoEvento;
-        if (ev.cargó) html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
-        if (ev.liberó) html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
+        if (ev.cargó) html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
+        if (ev.liberó) html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
         if (ev.descansó) {
           const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
-          html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
+          html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
         } else {
-          html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
+          html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
         }
       }
-      // Rachas MM en PDF
-      if (result.rachaCargado < 0 && result.rachaCargado >= -15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaCargado} sin cargar</div>`;
-      if (result.rachaCargado > 0 && result.rachaCargado <= 15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaCargado} cargando</div>`;
-      if (result.rachaLiberado < 0 && result.rachaLiberado >= -15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaLiberado} sin liberar</div>`;
-      if (result.rachaLiberado > 0 && result.rachaLiberado <= 15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaLiberado} liberando</div>`;
-      if (result.rachaDescanso < 0 && result.rachaDescanso >= -15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaDescanso} sin descansar</div>`;
-      if (result.rachaDescanso > 0 && result.rachaDescanso <= 15)
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaDescanso} descansando</div>`;
+      // Rachas MM en línea continua en PDF
+      {
+        let rachaTexto = '';
+        if (result.rachaCargado < 0 && result.rachaCargado >= -15) rachaTexto += `MM ${result.rachaCargado} sin cargar  `;
+        if (result.rachaCargado > 0 && result.rachaCargado <= 15) rachaTexto += `MM +${result.rachaCargado} cargando  `;
+        if (result.rachaLiberado < 0 && result.rachaLiberado >= -15) rachaTexto += `MM ${result.rachaLiberado} sin liberar  `;
+        if (result.rachaLiberado > 0 && result.rachaLiberado <= 15) rachaTexto += `MM +${result.rachaLiberado} liberando  `;
+        if (result.rachaDescanso < 0 && result.rachaDescanso >= -15) rachaTexto += `MM ${result.rachaDescanso} sin descansar`;
+        if (result.rachaDescanso > 0 && result.rachaDescanso <= 15) rachaTexto += `MM +${result.rachaDescanso} descansando`;
+        if (rachaTexto.trim()) html += `<div style="margin-top:0.5mm; color:#000000; font-size:8px;">${rachaTexto.trim()}</div>`;
+      }
       // Trazabilidad liberación: giro anterior vs giro actual
       if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
         const jugada = result.liberacionGiroAnterior[0].jugada ?? '?';
@@ -2168,7 +2166,7 @@
       if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
         const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
         const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-        html += `<div style="margin-top:0.5mm; color:#8a6d00;">Última liberación J#${jugada} liberó: ${coords}</div>`;
+        html += `<div style="margin-top:0.5mm; color:#000000;">Última liberación J#${jugada} liberó: ${coords}</div>`;
       }
       html += '</div>';
 
@@ -2188,11 +2186,11 @@
       // Alerta 5/5 en PDF
       if (history.length > 0 && history[0].coords &&
           history[0].coords[0] === 5 && history[0].coords[1] === 5) {
-        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ 5/5 no se repite C1 en próximo giro</div>`;
+        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ 5/5 no se repite C1 en próximo giro</div>`;
       }
       // Alerta 2 números repetidos en PDF
       if (history.length >= 2 && history[0].num === history[1].num) {
-        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠ 2 números repetidos en últimas 2 jugadas</div>`;
+        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠ 2 números repetidos en últimas 2 jugadas</div>`;
       }
       html += '</div>';
 
@@ -2279,7 +2277,7 @@
         if (hayC5C10) {
           html += `<div style="${BLK} flex:1;">`;
           html += `<div style="${TTL}">Columnas 5 y 10 Coordenadas Iguales</div>`;
-          html += `<div style="color:#8a6d00; font-weight:700;">⚠️ Cords C5 C10 iguales sube 1/2 a módulo machos si MM no Descansa</div>`;
+          html += `<div style="color:#000000; font-weight:700;">⚠️ Cords C5 C10 iguales sube 1/2 a módulo machos si MM no Descansa</div>`;
           html += '</div>';
         } else {
           html += `<div style="${BLK} flex:1;"></div>`;
@@ -2558,48 +2556,53 @@
 
     // ANULADO: mensaje de alerta5 en pantalla (falacia)
     // if (result.alerta5 === 'con4') {
-    //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+    //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
     // }
 
     // ── 1. TENDENCIA MM: estado actual (llenado / vaciado) ──
     const totalEnBodega = result.bodega.filter(v => v !== null).length;
     if (totalEnBodega <= 1) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LLENADO</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LLENADO</div>`;
     } else if (totalEnBodega >= 6) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LIBERADO</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LIBERADO</div>`;
     }
 
     // ── 2. G-A: qué ocurrió en el último giro ──
     if (result.ultimoEvento) {
       const ev = result.ultimoEvento;
-      if (ev.cargó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
-      if (ev.liberó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:var(--gold); font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
+      if (ev.cargó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
+      if (ev.liberó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
       if (ev.descansó) {
         const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
       } else {
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
       }
     }
 
-    // ── 3. RACHAS MM: cuánto lleva sin cargar / liberar / descansar ──
-    if (result.rachaCargado < 0 && result.rachaCargado >= -15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaCargado} sin cargar</div>`;
-    if (result.rachaCargado > 0 && result.rachaCargado <= 15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaCargado} cargando</div>`;
-    if (result.rachaLiberado < 0 && result.rachaLiberado >= -15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaLiberado} sin liberar</div>`;
-    if (result.rachaLiberado > 0 && result.rachaLiberado <= 15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaLiberado} liberando</div>`;
-    if (result.rachaDescanso < 0 && result.rachaDescanso >= -15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaDescanso} sin descansar</div>`;
-    if (result.rachaDescanso > 0 && result.rachaDescanso <= 15)
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaDescanso} descansando</div>`;
+    // ── 3. RACHAS MM en línea continua ──
+    {
+      let rachaTexto = '';
+      if (result.rachaCargado < 0 && result.rachaCargado >= -15)
+        rachaTexto += `MM ${result.rachaCargado} sin cargar  `;
+      if (result.rachaCargado > 0 && result.rachaCargado <= 15)
+        rachaTexto += `MM +${result.rachaCargado} cargando  `;
+      if (result.rachaLiberado < 0 && result.rachaLiberado >= -15)
+        rachaTexto += `MM ${result.rachaLiberado} sin liberar  `;
+      if (result.rachaLiberado > 0 && result.rachaLiberado <= 15)
+        rachaTexto += `MM +${result.rachaLiberado} liberando  `;
+      if (result.rachaDescanso < 0 && result.rachaDescanso >= -15)
+        rachaTexto += `MM ${result.rachaDescanso} sin descansar`;
+      if (result.rachaDescanso > 0 && result.rachaDescanso <= 15)
+        rachaTexto += `MM +${result.rachaDescanso} descansando`;
+      if (rachaTexto.trim())
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.78rem;">${rachaTexto.trim()}</div>`;
+    }
 
     // ── 4. PARES JUNTOS: coordenadas que subieron de la mano ──
     if (result.paresJuntos && result.paresJuntos.length > 0) {
       result.paresJuntos.forEach(([a, b]) => {
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
       });
     }
 
@@ -2612,12 +2615,12 @@
     if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
       const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
       const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:var(--gold); font-size:0.78rem;">Última liberación J#${jugada} liberó: ${coords}</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-size:0.78rem;">Última liberación J#${jugada} liberó: ${coords}</div>`;
     }
 
     // Alerta 0/5 (anulada - falacia)
     if (alerta05) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">${alerta05}</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">${alerta05}</div>`;
     }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
@@ -3382,7 +3385,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#131 N#132<br>
+  Versión 1.5.1 · Actualización A#133 N#134<br>
   Jose Alex N-R
 </footer>
 
