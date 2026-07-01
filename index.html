@@ -549,10 +549,14 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    #printArea * {
+      color: #000 !important;
+      font-size: 9px !important;
+    }
     #printArea table td,
     #printArea table th {
       padding: 0.5mm 0.5mm !important;
-      font-size: 10px !important;
+      font-size: 9px !important;
       border: 0.3px solid #000 !important;
       line-height: 1.1 !important;
     }
@@ -802,7 +806,7 @@
         Módulo Macho · Coordenadas Quedadas
       </label>
 
-      <div style="display:flex; gap:6px; flex-wrap:wrap; color:#fff;" id="quedadasBodega"></div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; color:#fff; font-size:clamp(10px, 2.6vw, 14px);" id="quedadasBodega"></div>
     </div>
 
     <div class="section-box" id="machoManoBox" style="display:none; margin-top:14px;">
@@ -842,6 +846,7 @@
       <table id="reportFreqTable" style="border-collapse:collapse;width:100%;font-size:0.85rem;text-align:center;">
         <tbody></tbody>
       </table>
+      <div id="reportFreqAlert" style="margin-top:6px; font-size:0.75rem;"></div>
     </div>
 
     <div class="section-box" id="reportNoVanMachoBox">
@@ -1019,6 +1024,7 @@
   const reportPanel = document.getElementById("reportPanel");
   const reportTable = document.querySelector("#reportTable tbody");
   const reportFreqTable = document.querySelector("#reportFreqTable tbody");
+  const reportFreqAlert = document.getElementById("reportFreqAlert");
   const reportDescansoAlert = document.getElementById("reportDescansoAlert");
   const reportNoVanMacho = document.getElementById("reportNoVanMacho");
   const reportFuertes = document.getElementById("reportFuertes");
@@ -1405,8 +1411,50 @@
     freqRow2 += "</tr>";
 
     reportFreqTable.innerHTML = freqRow1 + freqRow2;
+    reportFreqAlert.innerHTML = "";
 
-    // % de repetición de ESTA tabla (últimos 12 giros): celdas con 3+
+    // ── COORDENADAS FUERTES: umbral 4+ repeticiones acompañadas ──
+    {
+      reportFreqAlert.innerHTML = "";
+      const fuertes = [];
+      for (let d = 0; d <= 9; d++) {
+        if (freq[d] >= 4) fuertes.push(d);
+      }
+      // Ordenar de mayor a menor frecuencia
+      fuertes.sort((a, b) => freq[b] - freq[a]);
+
+      const obsLinea = [];
+      // Generar pares válidos (suma 9 o 10) ordenados por la más repetida primero
+      for (let i = 0; i < fuertes.length; i++) {
+        for (let j = 0; j < fuertes.length; j++) {
+          if (i === j) continue;
+          const a = fuertes[i], b = fuertes[j];
+          if (a >= b) continue; // evitar duplicados
+          const suma = a + b;
+          if (suma !== 9 && suma !== 10) continue; // solo combinaciones válidas
+          // Ordenar dentro del par: la más repetida primero
+          const [primero, segundo] = freq[a] >= freq[b] ? [a, b] : [b, a];
+          // Zona caliente C1-C3 para cada coordenada
+          const zonaP = ordered.slice(0, 3).map((e, idx) => e.coords.includes(primero) ? `C${idx+1}` : null).filter(Boolean);
+          const zonaS = ordered.slice(0, 3).map((e, idx) => e.coords.includes(segundo) ? `C${idx+1}` : null).filter(Boolean);
+          let zonaTexto = '';
+          if (zonaP.length > 0) zonaTexto += ` · #${primero} en ${zonaP.join(' ')} 🔥`;
+          if (zonaS.length > 0) zonaTexto += ` · #${segundo} en ${zonaS.join(' ')} 🔥`;
+          obsLinea.push(`⚡ Cord #${primero}(x${freq[primero]}) con #${segundo}(x${freq[segundo]})${zonaTexto}`);
+        }
+      }
+      // Ordenar las observaciones: primero las que tienen la coordenada más repetida
+      obsLinea.sort((x, y) => {
+        const freqX = parseInt(x.match(/#(\d+)\(x(\d+)\)/)?.[2] || 0);
+        const freqY = parseInt(y.match(/#(\d+)\(x(\d+)\)/)?.[2] || 0);
+        return freqY - freqX;
+      });
+      if (obsLinea.length > 0) {
+        reportFreqAlert.innerHTML = obsLinea.map(t =>
+          `<span style="color:var(--gold); font-weight:700;">${t}</span>`
+        ).join('  ');
+      }
+    }
     // repeticiones, cada repetición = 10%. (ej: 555 666 222 888 33333 => 170%)
     let pctTabla = 0;
     freq.forEach(c => { if (c >= 3) pctTabla += c * 10; });
@@ -1428,7 +1476,7 @@
     // Alerta 5/5
     if (history.length > 0 && history[0].coords &&
         history[0].coords[0] === 5 && history[0].coords[1] === 5) {
-      reportDescansoAlert.innerHTML = '⚠️ 5/5 no se repite C1 en próximo giro';
+      reportDescansoAlert.innerHTML = '⚠️ 5/5 no se repite en C 1 próximo giro ?';
       reportDescansoAlert.style.color = "var(--gold)";
     }
     // Alerta 2 números repetidos
@@ -1438,7 +1486,71 @@
       reportDescansoAlert.style.color = "var(--gold)";
     }
 
-    // ── Coordenadas que no van a Módulo Macho ──────────────
+    // ── PELIGRO: coordenada presente en las 3 zonas simultáneamente ──
+    if (ordered.length >= 10) {
+      const zonaCabeza = ordered.slice(0, 5);
+      const zonaFria   = ordered.slice(5, 9);
+      const zonaCola   = ordered.slice(9, 12);
+      for (let d = 0; d <= 9; d++) {
+        const enCabeza = zonaCabeza.map((e, idx) => e.coords.includes(d) ? `C${idx + 1}` : null).filter(Boolean);
+        const enFria   = zonaFria.map((e, idx)   => e.coords.includes(d) ? `C${idx + 6}` : null).filter(Boolean);
+        const enCola   = zonaCola.map((e, idx)   => e.coords.includes(d) ? `C${idx + 10}` : null).filter(Boolean);
+        if (enCabeza.length > 0 && enFria.length > 0 && enCola.length > 0) {
+          const cols = [...enCabeza, ...enFria, ...enCola].join(' ');
+          reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Peligro Cord #${d} · 3 zonas: ${cols}</div>`;
+        }
+      }
+    }
+
+    // ── PELIGRO C4/C5: coordenadas de C4 y C5 que reaparecen en C1, C2 o C3 ──
+    if (ordered.length >= 5) {
+      const coordsC4 = ordered[3].coords; // C4
+      const coordsC5 = ordered[4].coords; // C5
+      const coordsC1 = ordered[0].coords; // C1
+      const coordsC2 = ordered[1].coords; // C2
+      const coordsC3 = ordered[2].coords; // C3
+      const recientes = [
+        { col: 'C1', coords: coordsC1 },
+        { col: 'C2', coords: coordsC2 },
+        { col: 'C3', coords: coordsC3 },
+      ];
+      // Verificar cada coordenada de C5 y C4
+      const verificar = [
+        { origen: 'C5', vals: coordsC5 },
+        { origen: 'C4', vals: coordsC4 },
+      ];
+      verificar.forEach(({ origen, vals }) => {
+        vals.forEach(cord => {
+          const enRecientes = recientes.filter(r => r.coords.includes(cord)).map(r => r.col);
+          if (enRecientes.length > 0) {
+            reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Peligro Cord #${cord} · ${origen}→${enRecientes.join(' ')}</div>`;
+          }
+        });
+      });
+    }
+
+    // ── BROTHER: coordenada en MM con familiar en zona caliente C1-C5 ──
+    if (quedadas.active) {
+      const zonaCaliente = ordered.slice(0, 5); // C1-C5
+      quedadas.bodega.forEach((nivel, digito) => {
+        if (nivel === null) return; // no está en bodega
+        const brothers = [];
+        for (let d = 0; d <= 9; d++) {
+          if (d === digito) continue;
+          const suma = digito + d;
+          if (suma !== 9 && suma !== 10) continue; // solo combinaciones válidas
+          // Buscar si ese familiar está en alguna columna C1-C5
+          zonaCaliente.forEach((e, idx) => {
+            if (e.coords.includes(d)) {
+              brothers.push(`C${idx + 1} #${d}`);
+            }
+          });
+        }
+        if (brothers.length > 0) {
+          reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Cord #${digito} de MM tiene brother en ${brothers.join(' y ')}</div>`;
+        }
+      });
+    }
     // Unión de: coordenadas presentes en C1-C4 + dígitos en bodega del
     // módulo Macho. Si la unión cubre 0-9 completo => "Jugada Bloque Vacío":
     // el módulo Macho no cargará nuevos dígitos en el próximo giro.
@@ -1744,6 +1856,9 @@
     let liberacionGiroAnterior = []; // { digito, conteo } liberadas en el penúltimo giro
     let ultimaLiberacionPersistente = []; // última liberación ocurrida (persiste aunque haya descansos)
     const paresJuntos = []; // acumula pares [a,b] que entraron juntos y siguen en bodega
+    // Seguimiento de ciclo MM
+    let ciclotipo = null; // 'LLENADO' | 'VACIADO' | null
+    let cicloJugadaInicio = null; // jugada en que inició el ciclo actual
 
     // Recorremos todo el historial para mantener el bodegaje al día
     // (el bodegaje SÍ es acumulativo a través de los giros).
@@ -1841,6 +1956,16 @@
         liberacionGiroActual = salenConConteo.map(x => ({ ...x, jugada: i + 1 }));
         ultimaLiberacionPersistente = liberacionGiroActual.slice();
       }
+
+      // Seguimiento de ciclo MM
+      const coordsEnBodega = bodega.filter(v => v !== null).length;
+      if (coordsEnBodega <= 1 && ciclotipo !== 'LLENADO') {
+        ciclotipo = 'LLENADO';
+        cicloJugadaInicio = i + 1;
+      } else if (coordsEnBodega >= 6 && ciclotipo !== 'VACIADO') {
+        ciclotipo = 'VACIADO';
+        cicloJugadaInicio = i + 1;
+      }
     }
 
     // ── Proceso 4: rachas en ventanas limitadas ──────────
@@ -1921,6 +2046,8 @@
       liberacionGiroActual,
       liberacionGiroAnterior,
       ultimaLiberacionPersistente,
+      ciclotipo,
+      cicloJugadaInicio,
       paresJuntos,
       totalGiros: chrono.length,
       rachaCargado,
@@ -2117,59 +2244,55 @@
       // if (result.alerta5 === 'con4') {
       //   html += `<div style="margin-top:2mm; color:#000000;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
       // }
-      // Pares juntos que persisten en bodega
-      if (result.paresJuntos && result.paresJuntos.length > 0) {
-        result.paresJuntos.forEach(([a, b]) => {
-          html += `<div style="margin-top:1mm; color:#000000;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
-        });
-      }
-      // Alerta 0/5 en PDF
-      if (alerta05) {
-        html += `<div style="margin-top:1mm; color:#000000;">${alerta05}</div>`;
-      }
-      // Tendencia MM en PDF
-      const totalEnBodegaPdf = result.bodega.filter(v => v !== null).length;
-      if (totalEnBodegaPdf <= 1) {
-        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LLENADO</div>`;
-      } else if (totalEnBodegaPdf >= 6) {
-        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LIBERADO</div>`;
-      }
-      // Observación G-A en PDF
-      if (result.ultimoEvento) {
-        const ev = result.ultimoEvento;
-        if (ev.cargó) html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
-        if (ev.liberó) html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
-        if (ev.descansó) {
-          const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
-          html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
-        } else {
-          html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
-        }
-      }
-      // Rachas MM en línea continua en PDF
+      // Observaciones Módulo Macho — todas en una sola línea continua
       {
-        let rachaTexto = '';
-        if (result.rachaCargado < 0 && result.rachaCargado >= -15) rachaTexto += `MM ${result.rachaCargado} sin cargar  `;
-        if (result.rachaCargado > 0 && result.rachaCargado <= 15) rachaTexto += `MM +${result.rachaCargado} cargando  `;
-        if (result.rachaLiberado < 0 && result.rachaLiberado >= -15) rachaTexto += `MM ${result.rachaLiberado} sin liberar  `;
-        if (result.rachaLiberado > 0 && result.rachaLiberado <= 15) rachaTexto += `MM +${result.rachaLiberado} liberando  `;
-        if (result.rachaDescanso < 0 && result.rachaDescanso >= -15) rachaTexto += `MM ${result.rachaDescanso} sin descansar`;
-        if (result.rachaDescanso > 0 && result.rachaDescanso <= 15) rachaTexto += `MM +${result.rachaDescanso} descansando`;
-        if (rachaTexto.trim()) html += `<div style="margin-top:0.5mm; color:#000000; font-size:8px;">${rachaTexto.trim()}</div>`;
-      }
-      // Trazabilidad liberación: giro anterior vs giro actual
-      if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
-        const jugada = result.liberacionGiroAnterior[0].jugada ?? '?';
-        const coords = result.liberacionGiroAnterior.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-        html += `<div style="margin-top:0.5mm; color:#666; font-size:8px;">G anterior J#${jugada} liberó: ${coords}</div>`;
-      }
-      if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
-        const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
-        const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-        html += `<div style="margin-top:0.5mm; color:#000000;">Última liberación J#${jugada} liberó: ${coords}</div>`;
+        const obs = [];
+        // Pares juntos
+        if (result.paresJuntos && result.paresJuntos.length > 0)
+          result.paresJuntos.forEach(([a, b]) => obs.push(`⚠️ Cord = ${a} - ${b} juntas MM`));
+        // Alerta 0/5
+        if (alerta05) obs.push(alerta05);
+        // Tendencia
+        const totalEnBodegaPdf = result.bodega.filter(v => v !== null).length;
+        if (totalEnBodegaPdf <= 1) obs.push(`⚠️ ${totalEnBodegaPdf} Cord B → MM T=LLENADO`);
+        else if (totalEnBodegaPdf >= 6) obs.push(`⚠️ ${totalEnBodegaPdf} Cord B → MM T=LIBERADO`);
+        // Ciclo
+        if (result.ciclotipo && result.cicloJugadaInicio)
+          obs.push(`MM ciclo ${result.ciclotipo} J#${result.cicloJugadaInicio} · ahora ${totalEnBodegaPdf} Cord`);
+        // G-A
+        if (result.ultimoEvento) {
+          const ev = result.ultimoEvento;
+          if (ev.cargó) obs.push(`⚡ G-A Cargó #${ev.cargó} ¿Sí? ¿No?`);
+          if (ev.liberó) obs.push(`⚡ G-A Liberó #${ev.liberó} ¿Sí? ¿No?`);
+          if (ev.descansó) {
+            const rd = result.rachaDescanso > 1 ? ` MM +${result.rachaDescanso} desc.` : '';
+            obs.push(`⚡ G-A Descansó ¿Sí? ✓${rd}`);
+          } else {
+            obs.push(`⚡ G-A Descansó No · MM ${result.rachaDescanso} sin desc.`);
+          }
+        }
+        // Rachas
+        if (result.rachaCargado < 0 && result.rachaCargado >= -15) obs.push(`MM ${result.rachaCargado} sin cargar`);
+        if (result.rachaCargado > 0 && result.rachaCargado <= 15) obs.push(`MM +${result.rachaCargado} cargando`);
+        if (result.rachaLiberado < 0 && result.rachaLiberado >= -15) obs.push(`MM ${result.rachaLiberado} sin liberar`);
+        if (result.rachaLiberado > 0 && result.rachaLiberado <= 15) obs.push(`MM +${result.rachaLiberado} liberando`);
+        if (result.rachaDescanso < 0 && result.rachaDescanso >= -15) obs.push(`MM ${result.rachaDescanso} sin descansar`);
+        if (result.rachaDescanso > 0 && result.rachaDescanso <= 15) obs.push(`MM +${result.rachaDescanso} descansando`);
+        // Trazabilidad liberación
+        if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
+          const j = result.liberacionGiroAnterior[0].jugada ?? '?';
+          const c = result.liberacionGiroAnterior.map(x => `${x.digito}→${x.conteo}`).join(' ');
+          obs.push(`G ant J#${j}: ${c}`);
+        }
+        if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
+          const j = result.ultimaLiberacionPersistente[0].jugada ?? '?';
+          const c = result.ultimaLiberacionPersistente.map(x => `${x.digito}→${x.conteo}`).join(' ');
+          obs.push(`Últ lib J#${j}: ${c}`);
+        }
+        if (obs.length > 0)
+          html += `<div style="margin-top:1mm; color:#000; font-size:9px; line-height:1.4;">${obs.join('   ')}</div>`;
       }
       html += '</div>';
-
       html += '</div>';
     }
 
@@ -2183,14 +2306,36 @@
       html += `<div style="${BLK} flex:1;">`;
       html += `<div style="${TTL}">Últimos 12 Giros · Coordenadas</div>`;
       html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportTable.innerHTML}</table>`;
-      // Alerta 5/5 en PDF
-      if (history.length > 0 && history[0].coords &&
-          history[0].coords[0] === 5 && history[0].coords[1] === 5) {
-        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠️ 5/5 no se repite C1 en próximo giro</div>`;
-      }
-      // Alerta 2 números repetidos en PDF
-      if (history.length >= 2 && history[0].num === history[1].num) {
-        html += `<div style="margin-top:1mm; color:#000000; font-weight:700;">⚠ 2 números repetidos en últimas 2 jugadas</div>`;
+      // Alertas en línea continua negra
+      {
+        const obs12 = [];
+        if (history.length > 0 && history[0].coords &&
+            history[0].coords[0] === 5 && history[0].coords[1] === 5)
+          obs12.push('⚠️ 5/5 no se repite en C 1 próximo giro ?');
+        if (history.length >= 2 && history[0].num === history[1].num)
+          obs12.push('⚠ 2 números repetidos en últimas 2 jugadas');
+        if (obs12.length > 0)
+          html += `<div style="margin-top:1mm; color:#000; font-size:9px;">${obs12.join('   ')}</div>`;
+        // Brother: coordenada en MM con familiar en zona caliente C1-C5
+        if (result.active) {
+          const zonaC = history.slice(0, 5).map(h => h.coords);
+          const brotherObs = [];
+          result.bodega.forEach((nivel, digito) => {
+            if (nivel === null) return;
+            const bros = [];
+            for (let d = 0; d <= 9; d++) {
+              if (d === digito) continue;
+              const suma = digito + d;
+              if (suma !== 9 && suma !== 10) continue;
+              zonaC.forEach((coords, idx) => {
+                if (coords.includes(d)) bros.push(`C${idx+1} #${d}`);
+              });
+            }
+            if (bros.length > 0) brotherObs.push(`⚠️ Cord #${digito} de MM tiene brother en ${bros.join(' y ')}`);
+          });
+          if (brotherObs.length > 0)
+            html += `<div style="margin-top:1mm; color:#000; font-size:9px;">${brotherObs.join('   ')}</div>`;
+        }
       }
       html += '</div>';
 
@@ -2245,12 +2390,42 @@
       html += `<div style="${BLK} flex:1;">`;
       html += `<div style="${TTL}">Orden Repetición Coordenadas · 12 Giros</div>`;
       html += `<table style="border-collapse:collapse; width:8cm; margin:0 auto; font-size:11px; text-align:center;">${reportFreqTable.innerHTML}</table>`;
-      // ANULADO en PDF: aviso "Potencial descanso..." — se mantiene visible en pantalla
-      // if (reportDescansoAlert.textContent.trim()) {
-      //   html += `<div style="margin-top:1px;">${reportDescansoAlert.textContent.trim()}</div>`;
-      // }
+      // Todas las observaciones en una sola línea continua negra
+      {
+        const obsFreq = [];
+        // Coordenadas fuertes
+        if (reportFreqAlert.textContent.trim())
+          obsFreq.push(reportFreqAlert.textContent.trim());
+        // Peligro 3 zonas
+        const last12Pdf = history.slice(0, 12).map(h => ({ coords: h.coords }));
+        if (last12Pdf.length >= 10) {
+          const zC = last12Pdf.slice(0, 5), zF = last12Pdf.slice(5, 9), zCo = last12Pdf.slice(9, 12);
+          for (let d = 0; d <= 9; d++) {
+            const eC = zC.map((e, i) => e.coords.includes(d) ? `C${i+1}` : null).filter(Boolean);
+            const eF = zF.map((e, i) => e.coords.includes(d) ? `C${i+6}` : null).filter(Boolean);
+            const eCo = zCo.map((e, i) => e.coords.includes(d) ? `C${i+10}` : null).filter(Boolean);
+            if (eC.length > 0 && eF.length > 0 && eCo.length > 0)
+              obsFreq.push(`⚠️ Peligro Cord #${d} · 3 zonas: ${[...eC,...eF,...eCo].join(' ')}`);
+          }
+        }
+        // Peligro C4/C5
+        if (last12Pdf.length >= 5) {
+          const recPdf = [
+            { col: 'C1', coords: last12Pdf[0].coords },
+            { col: 'C2', coords: last12Pdf[1].coords },
+            { col: 'C3', coords: last12Pdf[2].coords },
+          ];
+          [{ origen: 'C5', vals: last12Pdf[4].coords }, { origen: 'C4', vals: last12Pdf[3].coords }].forEach(({ origen, vals }) => {
+            vals.forEach(cord => {
+              const enRec = recPdf.filter(r => r.coords.includes(cord)).map(r => r.col);
+              if (enRec.length > 0) obsFreq.push(`⚠️ Peligro Cord #${cord} · ${origen}→${enRec.join(' ')}`);
+            });
+          });
+        }
+        if (obsFreq.length > 0)
+          html += `<div style="margin-top:1mm; color:#000; font-size:9px; line-height:1.4;">${obsFreq.join('   ')}</div>`;
+      }
       html += '</div>';
-
       html += '</div>';
     }
 
@@ -2556,27 +2731,31 @@
 
     // ANULADO: mensaje de alerta5 en pantalla (falacia)
     // if (result.alerta5 === 'con4') {
-    //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
+    //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;" font-size:1rem;">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
     // }
 
     // ── 1. TENDENCIA MM: estado actual (llenado / vaciado) ──
     const totalEnBodega = result.bodega.filter(v => v !== null).length;
     if (totalEnBodega <= 1) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LLENADO</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LLENADO</div>`;
     } else if (totalEnBodega >= 6) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LIBERADO</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LIBERADO</div>`;
+    }
+    // Ciclo activo MM
+    if (result.ciclotipo && result.cicloJugadaInicio) {
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:#fff; font-size:0.78rem;">MM ciclo ${result.ciclotipo} · inició J#${result.cicloJugadaInicio} · ahora ${totalEnBodega} Cord B</div>`;
     }
 
     // ── 2. G-A: qué ocurrió en el último giro ──
     if (result.ultimoEvento) {
       const ev = result.ultimoEvento;
-      if (ev.cargó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
-      if (ev.liberó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
+      if (ev.cargó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
+      if (ev.liberó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-size:0.85rem;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
       if (ev.descansó) {
         const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
       } else {
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
       }
     }
 
@@ -2602,7 +2781,7 @@
     // ── 4. PARES JUNTOS: coordenadas que subieron de la mano ──
     if (result.paresJuntos && result.paresJuntos.length > 0) {
       result.paresJuntos.forEach(([a, b]) => {
-        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;" font-size:1rem;">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
       });
     }
 
@@ -2610,17 +2789,17 @@
     if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
       const jugada = result.liberacionGiroAnterior[0].jugada ?? '?';
       const coords = result.liberacionGiroAnterior.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--muted); font-size:0.78rem;">G anterior J#${jugada} liberó: ${coords}</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff; font-size:0.85rem;">G anterior J#${jugada} liberó: ${coords}</div>`;
     }
     if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
       const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
       const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-size:0.78rem;">Última liberación J#${jugada} liberó: ${coords}</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:#fff; font-size:0.85rem;">Última liberación J#${jugada} liberó: ${coords}</div>`;
     }
 
     // Alerta 0/5 (anulada - falacia)
     if (alerta05) {
-      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;">${alerta05}</div>`;
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:#fff;" font-size:1rem;">${alerta05}</div>`;
     }
 
     // ── Coordenadas Macho de la Mano ────────────────────────
@@ -3385,7 +3564,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#133 N#134<br>
+  Versión 1.5.1 · Actualización A#154 N#155<br>
   Jose Alex N-R
 </footer>
 
