@@ -1738,6 +1738,11 @@
     // reciente entró a bodega.
     const bodegaEntradaGiro = new Array(10).fill(null);
     let ultimasEntradas = []; // coordenadas que entraron juntas en el último giro
+    let ultimasSalidas = []; // coordenadas que se liberaron en el último giro
+    let ultimoEvento = { cargó: 0, liberó: 0, descansó: false };
+    let liberacionGiroActual = []; // { digito, conteo } liberadas en el último giro
+    let liberacionGiroAnterior = []; // { digito, conteo } liberadas en el penúltimo giro
+    let ultimaLiberacionPersistente = []; // última liberación ocurrida (persiste aunque haya descansos)
     const paresJuntos = []; // acumula pares [a,b] que entraron juntos y siguen en bodega
 
     // Recorremos todo el historial para mantener el bodegaje al día
@@ -1774,14 +1779,18 @@
       let ocurreCargado = false;
       let ocurreLiberado = false;
       const entranNuevos = []; // dígitos que entran NUEVOS a bodega en este giro
+      const salenNuevos = []; // dígitos que se liberan en este giro
+      const salenConConteo = []; // { digito, conteo } al momento de liberarse
 
       for (let d = 0; d <= 9; d++) {
         if (present.has(d)) {
           // Presente: si estaba en bodega, se libera
           if (bodega[d] !== null) {
+            salenConConteo.push({ digito: d, conteo: bodega[d] }); // capturar antes de null
             bodega[d] = null;
             bodegaEntradaGiro[d] = null;
             ocurreLiberado = true;
+            salenNuevos.push(d);
             if (d === 5) alerta5 = null; // el 5 se liberó: limpiar alerta
           }
         } else {
@@ -1819,7 +1828,19 @@
 
       eventosCargado.push(ocurreCargado);
       eventosLiberado.push(ocurreLiberado);
-      ultimasEntradas = entranNuevos.slice(); // captura del último giro
+      ultimasEntradas = entranNuevos.slice();
+      ultimasSalidas = salenNuevos.slice();
+      ultimoEvento = {
+        cargó: ocurreCargado ? entranNuevos.length : 0,
+        liberó: ocurreLiberado ? salenNuevos.length : 0,
+        descansó: !ocurreCargado && !ocurreLiberado
+      };
+      // Actualizar historial de liberaciones para trazabilidad vieja/joven
+      if (salenConConteo.length > 0) {
+        liberacionGiroAnterior = liberacionGiroActual.slice();
+        liberacionGiroActual = salenConConteo.map(x => ({ ...x, jugada: i + 1 }));
+        ultimaLiberacionPersistente = liberacionGiroActual.slice();
+      }
     }
 
     // ── Proceso 4: rachas en ventanas limitadas ──────────
@@ -1895,6 +1916,11 @@
       bodega,
       bodegaEntradaGiro,
       ultimasEntradas,
+      ultimasSalidas,
+      ultimoEvento,
+      liberacionGiroActual,
+      liberacionGiroAnterior,
+      ultimaLiberacionPersistente,
       paresJuntos,
       totalGiros: chrono.length,
       rachaCargado,
@@ -2100,6 +2126,49 @@
       // Alerta 0/5 en PDF
       if (alerta05) {
         html += `<div style="margin-top:1mm; color:#8a6d00;">${alerta05}</div>`;
+      }
+      // Tendencia MM en PDF
+      const totalEnBodegaPdf = result.bodega.filter(v => v !== null).length;
+      if (totalEnBodegaPdf <= 1) {
+        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LLENADO</div>`;
+      } else if (totalEnBodegaPdf >= 6) {
+        html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚠️ ${totalEnBodegaPdf} Cord B → MM potencial T = LIBERADO</div>`;
+      }
+      // Observación G-A en PDF
+      if (result.ultimoEvento) {
+        const ev = result.ultimoEvento;
+        if (ev.cargó) html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
+        if (ev.liberó) html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
+        if (ev.descansó) {
+          const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
+          html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
+        } else {
+          html += `<div style="margin-top:1mm; color:#8a6d00; font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
+        }
+      }
+      // Rachas MM en PDF
+      if (result.rachaCargado < 0 && result.rachaCargado >= -15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaCargado} sin cargar</div>`;
+      if (result.rachaCargado > 0 && result.rachaCargado <= 15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaCargado} cargando</div>`;
+      if (result.rachaLiberado < 0 && result.rachaLiberado >= -15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaLiberado} sin liberar</div>`;
+      if (result.rachaLiberado > 0 && result.rachaLiberado <= 15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaLiberado} liberando</div>`;
+      if (result.rachaDescanso < 0 && result.rachaDescanso >= -15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM ${result.rachaDescanso} sin descansar</div>`;
+      if (result.rachaDescanso > 0 && result.rachaDescanso <= 15)
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">MM +${result.rachaDescanso} descansando</div>`;
+      // Trazabilidad liberación: giro anterior vs giro actual
+      if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
+        const jugada = result.liberacionGiroAnterior[0].jugada ?? '?';
+        const coords = result.liberacionGiroAnterior.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
+        html += `<div style="margin-top:0.5mm; color:#666; font-size:8px;">G anterior J#${jugada} liberó: ${coords}</div>`;
+      }
+      if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
+        const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
+        const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
+        html += `<div style="margin-top:0.5mm; color:#8a6d00;">Última liberación J#${jugada} liberó: ${coords}</div>`;
       }
       html += '</div>';
 
@@ -2492,14 +2561,61 @@
     //   quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ 5 cargo en corta con 4/5  L E C</div>`;
     // }
 
-    // Observación: pares de coordenadas que subieron juntas y siguen en bodega
+    // ── 1. TENDENCIA MM: estado actual (llenado / vaciado) ──
+    const totalEnBodega = result.bodega.filter(v => v !== null).length;
+    if (totalEnBodega <= 1) {
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LLENADO</div>`;
+    } else if (totalEnBodega >= 6) {
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚠️ ${totalEnBodega} Cord B → MM potencial T = LIBERADO</div>`;
+    }
+
+    // ── 2. G-A: qué ocurrió en el último giro ──
+    if (result.ultimoEvento) {
+      const ev = result.ultimoEvento;
+      if (ev.cargó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Cargó #${ev.cargó} — ¿Sí? ¿No?</div>`;
+      if (ev.liberó) quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:var(--gold); font-weight:700;">⚡ G-A Liberó #${ev.liberó} — ¿Sí? ¿No?</div>`;
+      if (ev.descansó) {
+        const rachaDesc = result.rachaDescanso > 1 ? ` · MM +${result.rachaDescanso} descansando` : '';
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Descansó — ¿Sí? ✓${rachaDesc}</div>`;
+      } else {
+        quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold); font-weight:700;">⚡ G-A Descansó — No · MM ${result.rachaDescanso} sin descansar</div>`;
+      }
+    }
+
+    // ── 3. RACHAS MM: cuánto lleva sin cargar / liberar / descansar ──
+    if (result.rachaCargado < 0 && result.rachaCargado >= -15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaCargado} sin cargar</div>`;
+    if (result.rachaCargado > 0 && result.rachaCargado <= 15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaCargado} cargando</div>`;
+    if (result.rachaLiberado < 0 && result.rachaLiberado >= -15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaLiberado} sin liberar</div>`;
+    if (result.rachaLiberado > 0 && result.rachaLiberado <= 15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaLiberado} liberando</div>`;
+    if (result.rachaDescanso < 0 && result.rachaDescanso >= -15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM ${result.rachaDescanso} sin descansar</div>`;
+    if (result.rachaDescanso > 0 && result.rachaDescanso <= 15)
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:6px; color:var(--gold);">MM +${result.rachaDescanso} descansando</div>`;
+
+    // ── 4. PARES JUNTOS: coordenadas que subieron de la mano ──
     if (result.paresJuntos && result.paresJuntos.length > 0) {
       result.paresJuntos.forEach(([a, b]) => {
         quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">⚠️ Cord = ${a} - ${b} subieron juntas a MM P L E G</div>`;
       });
     }
 
-    // Alerta 0/5: cuál subió primero
+    // ── 5. TRAZABILIDAD LIBERACIÓN: últimas dos liberaciones con jugada ──
+    if (result.liberacionGiroAnterior && result.liberacionGiroAnterior.length > 0) {
+      const jugada = result.liberacionGiroAnterior[0].jugada ?? '?';
+      const coords = result.liberacionGiroAnterior.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--muted); font-size:0.78rem;">G anterior J#${jugada} liberó: ${coords}</div>`;
+    }
+    if (result.ultimaLiberacionPersistente && result.ultimaLiberacionPersistente.length > 0) {
+      const jugada = result.ultimaLiberacionPersistente[0].jugada ?? '?';
+      const coords = result.ultimaLiberacionPersistente.map(x => `${x.digito} → ${x.conteo}`).join(' · ');
+      quedadasBodega.innerHTML += `<div style="width:100%; margin-top:4px; color:var(--gold); font-size:0.78rem;">Última liberación J#${jugada} liberó: ${coords}</div>`;
+    }
+
+    // Alerta 0/5 (anulada - falacia)
     if (alerta05) {
       quedadasBodega.innerHTML += `<div style="width:100%; margin-top:8px; color:var(--gold);">${alerta05}</div>`;
     }
@@ -2612,31 +2728,33 @@
   });
 
   loadBtn.addEventListener("click", () => {
-    if (!loadDesbloqueado) {
-      if (loadPin.value.trim() !== "7890") {
-        loadPinError.textContent = "Clave incorrecta.";
-        return;
-      }
-      loadPinError.textContent = "";
-      loadPin.value = "";
-      loadDesbloqueado = true;
-      loadBloquearBtn.style.display = "";
-    }
+    // CLAVE DESHABILITADA TEMPORALMENTE — reactivar cuando se indique:
+    // if (!loadDesbloqueado) {
+    //   if (loadPin.value.trim() !== "7890") {
+    //     loadPinError.textContent = "Clave incorrecta.";
+    //     return;
+    //   }
+    //   loadPinError.textContent = "";
+    //   loadPin.value = "";
+    //   loadDesbloqueado = true;
+    //   loadBloquearBtn.style.display = "";
+    // }
     loadNumber();
   });
 
   numberInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      if (!loadDesbloqueado) {
-        if (loadPin.value.trim() !== "7890") {
-          loadPinError.textContent = "Clave incorrecta.";
-          return;
-        }
-        loadPinError.textContent = "";
-        loadPin.value = "";
-        loadDesbloqueado = true;
-        loadBloquearBtn.style.display = "";
-      }
+      // CLAVE DESHABILITADA TEMPORALMENTE — reactivar cuando se indique:
+      // if (!loadDesbloqueado) {
+      //   if (loadPin.value.trim() !== "7890") {
+      //     loadPinError.textContent = "Clave incorrecta.";
+      //     return;
+      //   }
+      //   loadPinError.textContent = "";
+      //   loadPin.value = "";
+      //   loadDesbloqueado = true;
+      //   loadBloquearBtn.style.display = "";
+      // }
       loadNumber();
     }
   });
@@ -3264,7 +3382,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.0 · Actualización A#120 N#121<br>
+  Versión 1.5.1 · Actualización A#131 N#132<br>
   Jose Alex N-R
 </footer>
 
