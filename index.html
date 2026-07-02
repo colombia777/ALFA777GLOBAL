@@ -803,6 +803,10 @@
       <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">
         ⚠️⚠️ P/S ⚠️⚠️
       </label>
+      <div class="input-row" style="margin-bottom:8px;">
+        <input type="text" id="potencialesInput" placeholder="ej: 36" inputmode="numeric" maxlength="2" style="max-width:80px; flex:none;">
+        <button id="potencialesBtnAgregar" style="background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:10px 14px; font-weight:700;">Agregar</button>
+      </div>
       <div class="error" id="potencialesError"></div>
       <div id="potencialesListado" style="margin-top:8px; font-size:0.85rem;"></div>
       <div style="margin-top:8px; display:none;" id="potencialesCopiarRow">
@@ -1066,6 +1070,7 @@
   let alerta05 = ''; // alerta de coordenadas 0 y 5 juntas en bodega
   let potencialesCoords = []; // pares válidos detectados automáticamente
   let potencialesBuffer = []; // coordenadas individuales acumuladas en el ciclo actual
+  let potencialesEstado = { p1: false, p2: false, p3: false }; // estado de cada proceso
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
   const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
@@ -1484,6 +1489,7 @@
     reportDescansoAlert.innerHTML = "";
     potencialesCoords = []; // reiniciar potenciales en cada carga de número
     potencialesBuffer = []; // reiniciar buffer de coordenadas individuales
+    potencialesEstado = { p1: false, p2: false, p3: false }; // reiniciar estado
     // Alerta 5/5
     if (history.length > 0 && history[0].coords &&
         history[0].coords[0] === 5 && history[0].coords[1] === 5) {
@@ -1615,7 +1621,100 @@
         }
       });
     }
-    // Unión de: coordenadas presentes en C1-C4 + dígitos en bodega del
+    // ── POTENCIALES: Proceso 3 — Si descansa que libera ──
+    // Parte A: detectar potencial de descanso (coord repetida 3+ veces en C1-C5)
+    // Solo aplica cuando MM NO ha descansado (racha negativa)
+    if (ordered.length >= 5 && quedadas.active) {
+      const rachaDesc = quedadas.rachaDescanso;
+      const zonaC1C5 = ordered.slice(0, 5);
+      const freqC1C5 = new Array(10).fill(0);
+      zonaC1C5.forEach(e => {
+        freqC1C5[e.coords[0]]++;
+        freqC1C5[e.coords[1]]++;
+      });
+      const repetidas = [];
+      for (let d = 0; d <= 9; d++) {
+        if (freqC1C5[d] >= 3) repetidas.push(`#${d}(x${freqC1C5[d]})`);
+      }
+      if (rachaDesc < 0 && repetidas.length > 0) {
+        // MM lleva sin descansar — potencial descanso próximo giro
+        reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Potencial descanso próximo giro · MM ${rachaDesc} sin descansar · Cords repetidas C1-C5: ${repetidas.join(' ')}</div>`;
+      }
+      if (rachaDesc === 3) {
+        // Llegó al máximo — el próximo giro no descansará
+        reportDescansoAlert.innerHTML += `<div style="color:var(--red); margin-top:4px; font-weight:700;">⛔ MM +3 descansos — el próximo giro NO descansará</div>`;
+      }
+    }
+
+    // Parte B: si el último giro descansó (racha +1 a +3), tomar coords de C5, C4, C1 → P/S
+    if (quedadas.active && quedadas.ultimoEvento && quedadas.ultimoEvento.descansó) {
+      const rachaDesc = quedadas.rachaDescanso;
+      if (rachaDesc >= 1 && rachaDesc <= 3 && ordered.length >= 5) {
+        const potDesc = [];
+        // C5 primero (70-80%), luego C4 (20%), luego C1
+        [4, 3, 0].forEach(idx => {
+          const col = `C${idx + 1}`;
+          ordered[idx].coords.forEach(d => {
+            if (!potDesc.find(x => x.digito === d)) potDesc.push({ digito: d, col });
+          });
+        });
+        // Formar pares válidos entre las coords del descanso
+        for (let i = 0; i < potDesc.length; i++) {
+          for (let j = i + 1; j < potDesc.length; j++) {
+            const a = potDesc[i].digito, b = potDesc[j].digito;
+            const suma = a + b;
+            if (suma !== 9 && suma !== 10) continue;
+            const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+            if (yaExiste) continue;
+            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+            if (numeros.length > 0) potencialesCoords.push({
+              coord1, coord2,
+              segmento: suma === 10 ? "Largo" : "Corto",
+              numeros,
+              origen: `${potDesc[i].col} · ${potDesc[j].col}`,
+              seccion: "Si descansa que libera"
+            });
+          }
+        }
+      }
+    }
+
+    // ── POTENCIALES: Proceso 4 — Tendencia descansos bloque actual ──
+    if (quedadas.bloquesDescanso && quedadas.bloquesDescanso.length > 0 && ordered.length >= 5) {
+      const bloqueActual = quedadas.bloquesDescanso[quedadas.bloquesDescanso.length - 1];
+      if (bloqueActual && bloqueActual.conteo >= 3) {
+        const potTend = [];
+        // C5 primero, luego C4, luego C1
+        [4, 3, 0].forEach(idx => {
+          const col = `C${idx + 1}`;
+          if (ordered[idx]) {
+            ordered[idx].coords.forEach(d => {
+              if (!potTend.find(x => x.digito === d)) potTend.push({ digito: d, col });
+            });
+          }
+        });
+        // Formar pares válidos
+        for (let i = 0; i < potTend.length; i++) {
+          for (let j = i + 1; j < potTend.length; j++) {
+            const a = potTend[i].digito, b = potTend[j].digito;
+            const suma = a + b;
+            if (suma !== 9 && suma !== 10) continue;
+            const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+            if (yaExiste) continue;
+            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+            if (numeros.length > 0) potencialesCoords.push({
+              coord1, coord2,
+              segmento: suma === 10 ? "Largo" : "Corto",
+              numeros,
+              origen: `${potTend[i].col} · ${potTend[j].col} · ${bloqueActual.conteo} desc en bloque`,
+              seccion: "Tendencia descansos · C5/C4/C1"
+            });
+          }
+        }
+      }
+    }
     // módulo Macho. Si la unión cubre 0-9 completo => "Jugada Bloque Vacío":
     // el módulo Macho no cargará nuevos dígitos en el próximo giro.
     const c1c4Set = new Set();
@@ -1646,10 +1745,116 @@
       if (!noVanMachoSet.has(d)) faltantes.push(d);
     }
 
+    // ── Semáforo C5: coordenadas faltantes en MM que están en C5 ──
+    if (faltantes.length > 0 && ordered.length >= 5) {
+      const coordsC5 = ordered[4].coords; // C5
+      // Detectar potencial descanso: freq >= 3 en C1-C5
+      const freqC5check = new Array(10).fill(0);
+      ordered.slice(0, 5).forEach(e => {
+        freqC5check[e.coords[0]]++;
+        freqC5check[e.coords[1]]++;
+      });
+      const hayPotencialDescanso = faltantes.some(d => freqC5check[d] >= 3) ||
+        (quedadas.active && quedadas.rachaDescanso < 0 && Object.values(freqC5check).some(v => v >= 3));
+
+      faltantes.forEach(d => {
+        if (!coordsC5.includes(d)) return; // solo las que están en C5
+        if (hayPotencialDescanso) {
+          // Potencial liberación desde C5 → va a P/S
+          reportDescansoAlert.innerHTML += `<div style="color:var(--red); margin-top:4px; font-weight:700;">⚠️ Cord #${d} en C5 · Potencial descanso → liberación desde C5</div>`;
+          // Buscar par válido con otras faltantes en C5
+          faltantes.forEach(d2 => {
+            if (d2 === d || !coordsC5.includes(d2)) return;
+            const suma = d + d2;
+            if (suma !== 9 && suma !== 10) return;
+            const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
+            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+            if (yaExiste) return;
+            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+            if (numeros.length > 0) potencialesCoords.push({
+              coord1, coord2,
+              segmento: suma === 10 ? "Largo" : "Corto",
+              numeros,
+              origen: `#${d} y #${d2} en C5`,
+              seccion: "Coordenadas que no van a MM · C5 semáforo"
+            });
+          });
+        } else {
+          // Sin potencial descanso → potencial carga a MM, solo alerta
+          reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚡ Cord #${d} en C5 · Sin descanso → potencial carga a MM</div>`;
+        }
+      });
+    }
+
     let fuertesHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">J P Repetición Coordenadas + F</label>`;
     if (faltantes.length === 0) {
       fuertesHtml += `<div style="font-size:0.85rem;">—</div>`;
       fuertesHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
+
+      // ── Señales del Bloque Vacío: ¿MM libera o descansa? ──
+      if (quedadas.active) {
+        const rLib = quedadas.rachaLiberado;
+        const rDesc = quedadas.rachaDescanso;
+        const manoUmbral = manoAlertasActivas && manoAlertasActivas.length > 0;
+
+        // Contar señales hacia cada escenario
+        let señalesLiberar = 0;
+        let señalesDescansar = 0;
+
+        // Señales hacia LIBERAR
+        if (rLib <= -2 && rLib >= -4) señalesLiberar++;
+        if (rDesc >= 2 && rDesc <= 3) señalesLiberar++;
+        if (manoUmbral) señalesLiberar++;
+
+        // Señales hacia DESCANSAR
+        if (rDesc <= -2 && rDesc >= -3) señalesDescansar++;
+        if (rLib >= 0 || rLib < -4) señalesDescansar++;
+        if (!manoUmbral) señalesDescansar++;
+
+        fuertesHtml += `<div style="margin-top:8px; border-top:1px solid #2f333a; padding-top:6px;">`;
+
+        if (señalesLiberar > señalesDescansar) {
+          // Escenario A: MM libera
+          fuertesHtml += `<div style="color:var(--gold); font-weight:700;">⚡ Escenario A · MM potencial LIBERA</div>`;
+          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
+          fuertesHtml += `Racha lib: ${rLib} · Racha desc: ${rDesc} · Mano: ${manoUmbral ? 'umbral ✓' : 'sin umbral'}`;
+          fuertesHtml += `</div>`;
+          // Coordenadas de MM a P/S
+          quedadas.bodega.forEach((nivel, d) => {
+            if (nivel === null) return;
+            quedadas.bodega.forEach((nivel2, d2) => {
+              if (nivel2 === null || d2 <= d) return;
+              const suma = d + d2;
+              if (suma !== 9 && suma !== 10) return;
+              const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
+              const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+              if (yaExiste) return;
+              const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+              if (numeros.length > 0) potencialesCoords.push({
+                coord1, coord2,
+                segmento: suma === 10 ? "Largo" : "Corto",
+                numeros,
+                origen: `MM bodega #${d}[${nivel}] · #${d2}[${nivel2}]`,
+                seccion: "Bloque Vacío · MM libera"
+              });
+            });
+          });
+        } else if (señalesDescansar > señalesLiberar) {
+          // Escenario B: Descansa → coords de C5, C4, C1
+          fuertesHtml += `<div style="color:var(--gold); font-weight:700;">⚡ Escenario B · Potencial DESCANSO · Libera C5/C4/C1</div>`;
+          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
+          fuertesHtml += `Racha lib: ${rLib} · Racha desc: ${rDesc} · Mano: ${manoUmbral ? 'umbral ✓' : 'sin umbral'}`;
+          fuertesHtml += `</div>`;
+        } else {
+          // Empate: mostrar ambos y el humano decide
+          fuertesHtml += `<div style="color:var(--red); font-weight:700;">⚠️ Señales empatadas · El humano decide</div>`;
+          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
+          fuertesHtml += `Escenario A (MM libera): ${señalesLiberar} señales · Escenario B (Descansa): ${señalesDescansar} señales`;
+          fuertesHtml += `</div>`;
+        }
+
+        fuertesHtml += `</div>`;
+      }
     } else {
       // Coordenadas faltantes, destacadas y solas
       fuertesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold); margin-bottom:10px;">${faltantes.join(", ")}</div>`;
@@ -2750,8 +2955,48 @@
           manoAlertas.push(`⚠️ ${digitos} juntos más de 10 veces`);
         } else if (grupo.length === 3 && conteo <= -5) {
           manoAlertas.push(`⚠️ ${digitos} juntos más de 5 veces`);
-        } else if (grupo.length === 4 && conteo <= -3) {
+          // → P/S: 3 coords con -5 o más → potenciales
+          const coordsGrupo = grupo.map(g => g.digito);
+          for (let x = 0; x < coordsGrupo.length; x++) {
+            for (let y = x + 1; y < coordsGrupo.length; y++) {
+              const a = coordsGrupo[x], b = coordsGrupo[y];
+              const suma = a + b;
+              if (suma !== 9 && suma !== 10) continue;
+              const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+              const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+              if (yaExiste) continue;
+              const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+              if (numeros.length > 0) potencialesCoords.push({
+                coord1, coord2,
+                segmento: suma === 10 ? "Largo" : "Corto",
+                numeros,
+                origen: `#${a}[${conteo}] · #${b}[${conteo}]`,
+                seccion: "Coordenadas Macho de la Mano"
+              });
+            }
+          }
+        } else if (grupo.length === 4 && conteo <= -4) {
           manoAlertas.push(`⚠️ ${digitos} juntos más de 3 veces`);
+          // → P/S: 4 coords con -4 o más → potenciales
+          const coordsGrupo = grupo.map(g => g.digito);
+          for (let x = 0; x < coordsGrupo.length; x++) {
+            for (let y = x + 1; y < coordsGrupo.length; y++) {
+              const a = coordsGrupo[x], b = coordsGrupo[y];
+              const suma = a + b;
+              if (suma !== 9 && suma !== 10) continue;
+              const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+              const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+              if (yaExiste) continue;
+              const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+              if (numeros.length > 0) potencialesCoords.push({
+                coord1, coord2,
+                segmento: suma === 10 ? "Largo" : "Corto",
+                numeros,
+                origen: `#${a}[${conteo}] · #${b}[${conteo}]`,
+                seccion: "Coordenadas Macho de la Mano"
+              });
+            }
+          }
         }
       }
       machoManoContent.innerHTML = manoHtml;
@@ -3136,8 +3381,9 @@
   const potencialesPinInput = document.getElementById("potencialesPinInput");
   const potencialesPinError = document.getElementById("potencialesPinError");
   const potencialesPanel = document.getElementById("potencialesPanel");
+  const potencialesInput = document.getElementById("potencialesInput");
+  const potencialesBtnAgregar = document.getElementById("potencialesBtnAgregar");
   const potencialesError = document.getElementById("potencialesError");
-  // potencialesInput y potencialesBtnAgregar eliminados — carga automática
   const potencialesListado = document.getElementById("potencialesListado");
   const potencialesCopiarRow = document.getElementById("potencialesCopiarRow");
   const potencialesBtnCopiar = document.getElementById("potencialesBtnCopiar");
@@ -3161,8 +3407,20 @@
   });
 
   function potencialesRenderListado() {
+    // Panel de estado de los 3 procesos
+    const tieneP1 = potencialesCoords.some(r => r.seccion && r.seccion.includes('12 giros'));
+    const tieneP2 = potencialesCoords.some(r => r.seccion && (r.seccion.includes('Módulo Macho') || r.seccion.includes('Bloque Vacío') || r.seccion.includes('Mano')));
+    const tieneP3 = potencialesCoords.some(r => r.seccion && (r.seccion.includes('descansa') || r.seccion.includes('Tendencia') || r.seccion.includes('C5')));
+
+    let estadoHtml = `<div style="margin-bottom:10px; padding:8px; background:#1a1d23; border-radius:8px; font-size:0.78rem;">`;
+    estadoHtml += `<div style="color:var(--muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Procesos P/S</div>`;
+    estadoHtml += `<div style="color:${tieneP1 ? 'var(--gold)' : 'var(--muted)'};">${tieneP1 ? '✅' : '⬜'} 1. Repetición IA Claude → ${tieneP1 ? potencialesCoords.filter(r => r.seccion && r.seccion.includes('12 giros')).length + ' pares detectados' : 'sin señal'}</div>`;
+    estadoHtml += `<div style="margin-top:4px; color:${tieneP2 ? 'var(--gold)' : '#ff8a80'};">${tieneP2 ? '✅' : '🔶'} 2. Que libera Módulo Macho → ${tieneP2 ? potencialesCoords.filter(r => r.seccion && (r.seccion.includes('Módulo Macho') || r.seccion.includes('Bloque Vacío') || r.seccion.includes('Mano'))).length + ' pares detectados' : 'verificar manualmente'}</div>`;
+    estadoHtml += `<div style="margin-top:4px; color:${tieneP3 ? 'var(--gold)' : 'var(--muted)'};">${tieneP3 ? '✅' : '⬜'} 3. Si descansa que libera → ${tieneP3 ? potencialesCoords.filter(r => r.seccion && (r.seccion.includes('descansa') || r.seccion.includes('Tendencia') || r.seccion.includes('C5'))).length + ' pares detectados' : 'no descansó'}</div>`;
+    estadoHtml += `</div>`;
+
     if (potencialesCoords.length === 0) {
-      potencialesListado.innerHTML = "<div style='color:var(--muted);font-size:0.8rem;'>Sin coordenadas aún.</div>";
+      potencialesListado.innerHTML = estadoHtml + "<div style='color:var(--muted);font-size:0.8rem;'>Sin coordenadas aún.</div>";
       potencialesCopiarRow.style.display = "none";
       return;
     }
@@ -3172,13 +3430,13 @@
       return na - nb;
     });
     const allNums = sortNums([...new Set(potencialesCoords.flatMap(r => r.numeros))]);
-    let html = "";
+    let html = estadoHtml;
     let seccionActual = null;
     let primeraDelSegmento = true;
     potencialesCoords.forEach(r => {
       const abrev = r.segmento === "Largo" ? "L" : "C";
       const sorted = sortNums(r.numeros);
-      const origenTag = r.origen ? ` <span style="color:var(--muted); font-size:0.72rem;">[${r.origen}]</span>` : '';
+      const origenTag = r.origen ? ` <span style="color:#fff; font-size:0.72rem;">[${r.origen}]</span>` : '';
       if (r.seccion && r.seccion !== seccionActual) {
         seccionActual = r.seccion;
         primeraDelSegmento = true;
@@ -3190,13 +3448,51 @@
       html += `<div style="margin-bottom:${marginBottom}; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}${origenTag}</div>`;
     });
     html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; color:var(--gold); font-weight:700;">Total N/S cobijado = ${allNums.length}</div>`;
+    if (allNums.length > 26) {
+      html += `<div style="margin-top:6px; color:var(--red); font-weight:700;">⚠️ Pasaste el umbral cobijado 26 # — revisa si hay cords que no son fuertes</div>`;
+    }
     html += `<div style="margin-top:4px; color:var(--gold);">Total: ${allNums.join(" - ")}</div>`;
     potencialesListado.innerHTML = html;
     potencialesCopiarRow.style.display = "block";
   }
 
-  // Campo manual eliminado — P/S se alimenta automáticamente
-  // potencialesBtnAgregar / potencialesInput / potencialesAgregar
+  // Campo manual — acepta par pegado: coord menor + coord mayor (ej: 36, 37)
+  potencialesBtnAgregar.addEventListener("click", () => potencialesAgregarManual());
+  potencialesInput.addEventListener("keydown", e => { if (e.key === "Enter") potencialesAgregarManual(); });
+
+  function potencialesAgregarManual() {
+    potencialesError.textContent = "";
+    const val = potencialesInput.value.trim();
+    if (val.length !== 2 || isNaN(val)) {
+      potencialesError.textContent = "Ingresa dos dígitos juntos (ej: 36, 37).";
+      return;
+    }
+    const c1 = parseInt(val[0]);
+    const c2 = parseInt(val[1]);
+    if (c1 > c2) {
+      potencialesError.textContent = `El primer dígito debe ser menor o igual al segundo (ej: ${c2}${c1}).`;
+      return;
+    }
+    const suma = c1 + c2;
+    if (suma !== 9 && suma !== 10) {
+      potencialesError.textContent = `Par inválido: ${c1}+${c2}=${suma}. Debe sumar 9 o 10.`;
+      return;
+    }
+    const yaExiste = potencialesCoords.some(r => r.coord1 === c1 && r.coord2 === c2);
+    if (yaExiste) {
+      potencialesError.textContent = "⚠️ Este par ya está agregado.";
+      return;
+    }
+    const numeros = cnCoordsToNumbers(c1, c2, suma);
+    if (numeros.length === 0) {
+      potencialesError.textContent = `Sin números para ${c1}/${c2}.`;
+      return;
+    }
+    potencialesCoords.push({ coord1: c1, coord2: c2, segmento: suma === 10 ? "Largo" : "Corto", numeros, origen: "", seccion: "Manual" });
+    potencialesInput.value = "";
+    potencialesInput.focus();
+    potencialesRenderListado();
+  }
 
   potencialesBtnCopiar.addEventListener("click", () => {
     if (potencialesCoords.length === 0) return;
@@ -3638,7 +3934,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#177 N#178<br>
+  Versión 1.5.1 · Actualización A#190 N#191<br>
   Jose Alex N-R
 </footer>
 
