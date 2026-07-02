@@ -791,6 +791,28 @@
   <div class="error" id="coordsNumerosPinError"></div>
   <!-- ══ FIN SECCIÓN NUEVA ══ -->
 
+  <!-- ══ SECCIÓN POTENCIALES ══ -->
+  <div class="undo-row" style="margin-top:10px;">
+    <input type="password" id="potencialesPinInput" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center; background:#1a1d23; border:1px solid #ff8a80; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
+    <button id="potencialesBtn" style="flex:1; background:transparent; border:2px solid var(--gold); color:var(--gold); border-radius:10px; padding:10px; font-weight:700; font-size:0.9rem;">⚠️⚠️ P/S ⚠️⚠️</button>
+  </div>
+  <div class="error" id="potencialesPinError"></div>
+
+  <div id="potencialesPanel" style="display:none; margin-top:10px;">
+    <div class="section-box" style="border-color:var(--gold);">
+      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">
+        ⚠️⚠️ P/S ⚠️⚠️
+      </label>
+      <div class="error" id="potencialesError"></div>
+      <div id="potencialesListado" style="margin-top:8px; font-size:0.85rem;"></div>
+      <div style="margin-top:8px; display:none;" id="potencialesCopiarRow">
+        <button id="potencialesBtnCopiar" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;width:100%;">Copiar todo</button>
+      </div>
+      <div id="cnGuardados" style="display:none;"></div>
+    </div>
+  </div>
+  <!-- ══ FIN POTENCIALES ══ -->
+
   <div class="undo-row">
     <button id="playsHistoryBtn" style="flex:1; display:none;">Ver historial de jugadas</button>
   </div>
@@ -860,22 +882,6 @@
     <div class="section-box" id="reportC5C10IgualesBox">
       <div id="reportC5C10Iguales" style="font-size:0.75rem;"></div>
     </div>
-  </div>
-
-  <div class="input-row" style="margin-top:10px;">
-    <input type="password" id="liberacionPinInput" placeholder="Clave" inputmode="numeric" maxlength="4" style="width:70px; flex:none; text-align:center; background:#1a1d23; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:10px; font-size:0.85rem;">
-    <button id="liberacionAccesoBtn" style="background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:10px 16px;font-size:0.85rem;font-weight:700;">F R O</button>
-  </div>
-  <div class="error" id="liberacionPinError"></div>
-
-  <div id="liberacionPanel" class="section-box" style="display:none; margin-top:14px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0;">
-        Frecuencia relativa observada
-      </label>
-      <button id="liberacionToggleBtn" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">Ocultar</button>
-    </div>
-    <div style="font-size:0.75rem;" id="liberacionContent"></div>
   </div>
 
   <div id="alertasPeligrosPanel" class="section-box" style="display:none; margin-top:14px; border-color:var(--red);">
@@ -1048,15 +1054,18 @@
   const tendenciaBtn = document.getElementById("tendenciaBtn");
   const tendenciaBtnRow = document.getElementById("tendenciaBtnRow");
   const tendenciaContent = document.getElementById("tendenciaContent");
-  const liberacionPanel = document.getElementById("liberacionPanel");
-  const liberacionContent = document.getElementById("liberacionContent");
-  const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
-  const liberacionPinInput = document.getElementById("liberacionPinInput");
-  const liberacionPinError = document.getElementById("liberacionPinError");
-  const liberacionAccesoBtn = document.getElementById("liberacionAccesoBtn");
-  let liberacionUserHidden = true; // oculta por defecto, requiere clave
+  // FRO eliminada — falacia comprobada
+  // const liberacionPanel = document.getElementById("liberacionPanel");
+  // const liberacionContent = document.getElementById("liberacionContent");
+  // const liberacionToggleBtn = document.getElementById("liberacionToggleBtn");
+  // const liberacionPinInput = document.getElementById("liberacionPinInput");
+  // const liberacionPinError = document.getElementById("liberacionPinError");
+  // const liberacionAccesoBtn = document.getElementById("liberacionAccesoBtn");
+  // let liberacionUserHidden = true;
   let manoAlertasActivas = []; // alertas de Coordenadas Macho de la Mano
   let alerta05 = ''; // alerta de coordenadas 0 y 5 juntas en bodega
+  let potencialesCoords = []; // pares válidos detectados automáticamente
+  let potencialesBuffer = []; // coordenadas individuales acumuladas en el ciclo actual
   const alertasPeligrosPanel = document.getElementById("alertasPeligrosPanel");
   const alertasPeligrosContent = document.getElementById("alertasPeligrosContent");
 
@@ -1473,6 +1482,8 @@
     }
     */
     reportDescansoAlert.innerHTML = "";
+    potencialesCoords = []; // reiniciar potenciales en cada carga de número
+    potencialesBuffer = []; // reiniciar buffer de coordenadas individuales
     // Alerta 5/5
     if (history.length > 0 && history[0].coords &&
         history[0].coords[0] === 5 && history[0].coords[1] === 5) {
@@ -1486,7 +1497,11 @@
       reportDescansoAlert.style.color = "var(--gold)";
     }
 
-    // ── PELIGRO: coordenada presente en las 3 zonas simultáneamente ──
+    // ── POTENCIALES: Segmento 1 — Últimos 12 giros (3 zonas + C4/C5) ──
+    // Las coordenadas de este segmento se emparejan solo entre ellas
+    const potSeg1 = []; // { digito, cols } buffer segmento 1
+
+    // PELIGRO: coordenada presente en las 3 zonas simultáneamente
     if (ordered.length >= 10) {
       const zonaCabeza = ordered.slice(0, 5);
       const zonaFria   = ordered.slice(5, 9);
@@ -1498,56 +1513,105 @@
         if (enCabeza.length > 0 && enFria.length > 0 && enCola.length > 0) {
           const cols = [...enCabeza, ...enFria, ...enCola].join(' ');
           reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Peligro Cord #${d} · 3 zonas: ${cols}</div>`;
+          if (!potSeg1.find(x => x.digito === d)) potSeg1.push({ digito: d, cols });
         }
       }
     }
 
-    // ── PELIGRO C4/C5: coordenadas de C4 y C5 que reaparecen en C1, C2 o C3 ──
+    // PELIGRO C4/C5: coordenadas de C4 y C5 que reaparecen en C1, C2 o C3
     if (ordered.length >= 5) {
-      const coordsC4 = ordered[3].coords; // C4
-      const coordsC5 = ordered[4].coords; // C5
-      const coordsC1 = ordered[0].coords; // C1
-      const coordsC2 = ordered[1].coords; // C2
-      const coordsC3 = ordered[2].coords; // C3
+      const coordsC4 = ordered[3].coords;
+      const coordsC5 = ordered[4].coords;
       const recientes = [
-        { col: 'C1', coords: coordsC1 },
-        { col: 'C2', coords: coordsC2 },
-        { col: 'C3', coords: coordsC3 },
+        { col: 'C1', coords: ordered[0].coords },
+        { col: 'C2', coords: ordered[1].coords },
+        { col: 'C3', coords: ordered[2].coords },
       ];
-      // Verificar cada coordenada de C5 y C4
-      const verificar = [
-        { origen: 'C5', vals: coordsC5 },
-        { origen: 'C4', vals: coordsC4 },
-      ];
-      verificar.forEach(({ origen, vals }) => {
+      [{ origen: 'C5', vals: coordsC5 }, { origen: 'C4', vals: coordsC4 }].forEach(({ origen, vals }) => {
         vals.forEach(cord => {
           const enRecientes = recientes.filter(r => r.coords.includes(cord)).map(r => r.col);
           if (enRecientes.length > 0) {
             reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Peligro Cord #${cord} · ${origen}→${enRecientes.join(' ')}</div>`;
+            const existing = potSeg1.find(x => x.digito === cord);
+            const colTag = `${origen}→${enRecientes.join(' ')}`;
+            if (existing) { existing.cols += ' ' + colTag; }
+            else { potSeg1.push({ digito: cord, cols: colTag }); }
           }
         });
       });
     }
 
-    // ── BROTHER: coordenada en MM con familiar en zona caliente C1-C5 ──
+    // Formar pares válidos SOLO entre coords del segmento 1
+    for (let i = 0; i < potSeg1.length; i++) {
+      for (let j = i + 1; j < potSeg1.length; j++) {
+        const a = potSeg1[i].digito, b = potSeg1[j].digito;
+        const suma = a + b;
+        if (suma !== 9 && suma !== 10) continue;
+        const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+        const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+        if (yaExiste) continue;
+        const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+        const colA = potSeg1[i].cols, colB = potSeg1[j].cols;
+        if (numeros.length > 0) potencialesCoords.push({ coord1, coord2, segmento: suma === 10 ? "Largo" : "Corto", numeros, origen: `#${a}[${colA}] · #${b}[${colB}]`, seccion: 'Últimos 12 giros · últimas 12 casillas · últimas 12 coordenadas' });
+      }
+    }
+
+    // ── POTENCIALES: Segmento 3 — Coordenadas fuertes Orden Repetición (freq 4+) ──
+    // Solo entran pares que NO estén ya en potencialesCoords del segmento 1
+    {
+      const fuertesSeg3 = [];
+      for (let d = 0; d <= 9; d++) {
+        if (freq[d] >= 4) fuertesSeg3.push(d);
+      }
+      for (let i = 0; i < fuertesSeg3.length; i++) {
+        for (let j = i + 1; j < fuertesSeg3.length; j++) {
+          const a = fuertesSeg3[i], b = fuertesSeg3[j];
+          const suma = a + b;
+          if (suma !== 9 && suma !== 10) continue;
+          const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+          // Solo si no está ya en POTENCIALES
+          const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+          if (yaExiste) continue;
+          const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+          if (numeros.length > 0) potencialesCoords.push({
+            coord1, coord2,
+            segmento: suma === 10 ? "Largo" : "Corto",
+            numeros,
+            origen: `#${a}(x${freq[a]}) · #${b}(x${freq[b]})`, seccion: 'Orden repetición coordenadas últimos 12 giros'
+          });
+        }
+      }
+    }
+
+    // ── POTENCIALES: Segmento 2 — Brothers de MM ──
+    // Cada par directo (coord MM + brother) va solo, sin mezclarse con segmento 1
     if (quedadas.active) {
       const zonaCaliente = ordered.slice(0, 5); // C1-C5
       quedadas.bodega.forEach((nivel, digito) => {
-        if (nivel === null) return; // no está en bodega
+        if (nivel === null) return;
         const brothers = [];
         for (let d = 0; d <= 9; d++) {
           if (d === digito) continue;
           const suma = digito + d;
-          if (suma !== 9 && suma !== 10) continue; // solo combinaciones válidas
-          // Buscar si ese familiar está en alguna columna C1-C5
+          if (suma !== 9 && suma !== 10) continue;
           zonaCaliente.forEach((e, idx) => {
-            if (e.coords.includes(d)) {
-              brothers.push(`C${idx + 1} #${d}`);
-            }
+            if (e.coords.includes(d)) brothers.push(`C${idx + 1} #${d}`);
           });
         }
         if (brothers.length > 0) {
           reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Cord #${digito} de MM tiene brother en ${brothers.join(' y ')}</div>`;
+          // Par directo: digito + brother — sin mezclar con segmento 1
+          brothers.forEach(b => {
+            const bNum = parseInt(b.split('#')[1]);
+            if (isNaN(bNum)) return;
+            const suma = digito + bNum;
+            if (suma !== 9 && suma !== 10) return;
+            const coord1 = Math.min(digito, bNum), coord2 = Math.max(digito, bNum);
+            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+            if (yaExiste) return;
+            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+            if (numeros.length > 0) potencialesCoords.push({ coord1, coord2, segmento: suma === 10 ? "Largo" : "Corto", numeros, origen: "", seccion: "Módulo Macho / Brother de C1 a C5" });
+          });
         }
       });
     }
@@ -1660,146 +1724,14 @@
 
     reportPanel.style.display = "block";
 
-    renderLiberacion(ordered, freq, quedadas);
+    // renderLiberacion eliminada — FRO era falacia comprobada
+    // renderLiberacion(ordered, freq, quedadas);
   }
 
-  // ── Módulo Frecuencia relativa observada ───────────────
-  // Para cada coordenada en la bodega del módulo Macho, evalúa 3 apoyos
-  // basados en la familia de esa coordenada (ver tabla FAMILIAS):
-  //   Apoyo 1: un hermano aparece como coordenada en C1-C4 (zona cabeza)
-  //   Apoyo 2: un hermano aparece como coordenada en C10-C12 (zona cola)
-  //   Apoyo 3: un hermano tiene freq >= 3 en la tabla de 12 giros
-  //   Apoyo 4 (informativo): Descanso en racha -3/-4/-5 = advertencia
-  // Con 2+ apoyos (de 1,2,3) se muestra como "Potencial liberación".
-  // Con los 3 apoyos, se indica como teoría más fuerte.
-  function renderLiberacion(ordered, freq, quedadas) {
-    if (!quedadas.active) {
-      liberacionPanel.style.display = "none";
-      return;
-    }
-
-    // Mapear cada dígito a las columnas específicas (C1-C4 y C10-C12) donde aparece
-    const cabezaCols = {}; // digito -> ["C1","C3",...]
-    ordered.slice(0, 4).forEach((e, idx) => {
-      const col = `C${idx + 1}`;
-      [e.coords[0], e.coords[1]].forEach(d => {
-        if (!cabezaCols[d]) cabezaCols[d] = [];
-        if (!cabezaCols[d].includes(col)) cabezaCols[d].push(col);
-      });
-    });
-
-    const colaCols = {}; // digito -> ["C10","C11",...]
-    ordered.slice(9, 12).forEach((e, idx) => {
-      const col = `C${idx + 10}`;
-      [e.coords[0], e.coords[1]].forEach(d => {
-        if (!colaCols[d]) colaCols[d] = [];
-        if (!colaCols[d].includes(col)) colaCols[d].push(col);
-      });
-    });
-
-    // Mapeo completo C1-C12 (para indicar columnas exactas del apoyo 3)
-    const todasCols = {}; // digito -> ["C1","C5",...]
-    ordered.forEach((e, idx) => {
-      const col = `C${idx + 1}`;
-      [e.coords[0], e.coords[1]].forEach(d => {
-        if (!todasCols[d]) todasCols[d] = [];
-        if (!todasCols[d].includes(col)) todasCols[d].push(col);
-      });
-    });
-
-    // Convierte "C1" -> "C- 1" para texto legible
-    function colLarga(col) {
-      return col.replace(/^C/, "C- ");
-    }
-
-    const items = [];
-
-    quedadas.bodega.forEach((nivel, digito) => {
-      if (nivel === null) return; // no está en bodega
-
-      const hermanos = FAMILIAS[digito] || [];
-      const hermanosCabeza = hermanos.filter(h => cabezaCols[h]);
-      const hermanosCola = hermanos.filter(h => colaCols[h]);
-      const hermanosFreq = hermanos.filter(h => freq[h] >= 3);
-
-      const apoyo1 = hermanosCabeza.length > 0;
-      const apoyo2 = hermanosCola.length > 0;
-      const apoyo3 = hermanosFreq.length > 0;
-
-      const totalApoyos = [apoyo1, apoyo2, apoyo3].filter(Boolean).length;
-
-      if (totalApoyos >= 1) {
-        const lineas = [];
-        if (apoyo1) {
-          hermanosCabeza.forEach(h => {
-            cabezaCols[h].forEach(col => lineas.push(`Hno ${h} en ${colLarga(col)}`));
-          });
-        }
-        if (apoyo2) {
-          hermanosCola.forEach(h => {
-            colaCols[h].forEach(col => lineas.push(`Hno ${h} en ${colLarga(col)}`));
-          });
-        }
-        if (apoyo3) {
-          hermanosFreq.forEach(h => {
-            lineas.push(`Hno ${h} (${freq[h]}x) en ${(todasCols[h] || []).map(colLarga).join("/")}`);
-          });
-        }
-
-        const testigo = totalApoyos === 3 ? "Hipotesis (3/3)" : `(${totalApoyos}/3)`;
-        let bloque = `<div style="margin-bottom:10px; color:var(--gold);">`;
-        bloque += `<div style="font-weight:800;">Coordenada ${digito} — ${nivel} veces · ${testigo}</div>`;
-        lineas.forEach(l => { bloque += `<div style="margin-left:10px;">${l}</div>`; });
-        bloque += `</div>`;
-        items.push(bloque);
-      }
-    });
-
-    if (items.length === 0) {
-      liberacionPanel.style.display = "none";
-      return;
-    }
-
-    liberacionContent.innerHTML = items.join("");
-    // Solo mostrar el panel si el usuario no lo cerró manualmente
-    if (!liberacionUserHidden) {
-      liberacionPanel.style.display = "block";
-      liberacionContent.style.display = "";
-      liberacionToggleBtn.textContent = "Ocultar";
-    }
-  }
-
-  liberacionAccesoBtn.addEventListener("click", () => {
-    const pin = liberacionPinInput.value.trim();
-    if (pin !== "7890") {
-      liberacionPinError.textContent = "Clave incorrecta.";
-      return;
-    }
-    liberacionPinError.textContent = "";
-    liberacionPinInput.value = "";
-    // Toggle: si está visible, ocultar; si está oculto, mostrar
-    if (liberacionPanel.style.display !== "none") {
-      liberacionPanel.style.display = "none";
-      liberacionUserHidden = true;
-    } else {
-      liberacionPanel.style.display = "block";
-      liberacionContent.style.display = "";
-      liberacionToggleBtn.textContent = "Ocultar";
-      liberacionUserHidden = false;
-    }
-  });
-
-  liberacionToggleBtn.addEventListener("click", () => {
-    if (liberacionContent.style.display === "none") {
-      liberacionContent.style.display = "";
-      liberacionToggleBtn.textContent = "Ocultar";
-      liberacionUserHidden = false;
-    } else {
-      liberacionContent.style.display = "none";
-      liberacionToggleBtn.textContent = "Ver";
-      liberacionUserHidden = true;
-    }
-  });
+  // FRO ELIMINADA — falacia comprobada en campo
+  // function renderLiberacion(ordered, freq, quedadas) { ... }
+  // liberacionAccesoBtn.addEventListener(...)
+  // liberacionToggleBtn.addEventListener(...)
 
   // ── Módulo Macho · Coordenadas Quedadas ────────────────
   // Lee la trazabilidad ya guardada; no afecta cálculo de cardinales/coordenadas.
@@ -2467,19 +2399,8 @@
     {
       const hayLiberacion = false; // antes: !!liberacionContent.textContent.trim();
 
-      if (hayLiberacion) {
-        html += `<div style="${BLK}">`;
-        html += `<div style="${TTL}">Frecuencia relativa observada</div>`;
-        html += `<div style="display:flex; gap:3mm; align-items:flex-start; font-size:10px; line-height:1.4;">`;
-        Array.from(liberacionContent.children).forEach(coordDiv => {
-          const hijos = Array.from(coordDiv.children);
-          const titulo = hijos[0] ? hijos[0].outerHTML : "";
-          const resto = hijos.slice(1).map(d => d.textContent).join(" / ");
-          html += `<div style="flex:1; min-width:0;">${titulo}<div style="margin-left:10px;">${resto}</div></div>`;
-        });
-        html += '</div>';
-        html += '</div>';
-      }
+      // FRO ELIMINADA — falacia comprobada
+      // if (hayLiberacion) { ... bloque FRO en PDF ... }
     }
 
     // ── Fila 6: Observaciones relevantes (ancho completo) ──
@@ -3189,6 +3110,142 @@
     }
   });
 
+  // ── Sección POTENCIALES ────────────────────────────────
+  // Buffer de coordenadas individuales detectadas en cada carga
+
+  function potencialesRegistrarCoord(digito) {
+    if (potencialesBuffer.includes(digito)) return;
+    potencialesBuffer.push(digito);
+    for (const otro of potencialesBuffer) {
+      if (otro === digito) continue;
+      const suma = digito + otro;
+      if (suma !== 9 && suma !== 10) continue;
+      const segLen = suma;
+      const segNombre = suma === 10 ? "Largo" : "Corto";
+      const coord1 = Math.min(digito, otro);
+      const coord2 = Math.max(digito, otro);
+      const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+      if (yaExiste) continue;
+      const numeros = cnCoordsToNumbers(coord1, coord2, segLen);
+      if (numeros.length > 0) {
+        potencialesCoords.push({ coord1, coord2, segmento: segNombre, numeros });
+      }
+    }
+    // El panel se actualiza desde potencialesRenderListado() al abrirse
+  }
+  const potencialesPinInput = document.getElementById("potencialesPinInput");
+  const potencialesPinError = document.getElementById("potencialesPinError");
+  const potencialesPanel = document.getElementById("potencialesPanel");
+  const potencialesError = document.getElementById("potencialesError");
+  // potencialesInput y potencialesBtnAgregar eliminados — carga automática
+  const potencialesListado = document.getElementById("potencialesListado");
+  const potencialesCopiarRow = document.getElementById("potencialesCopiarRow");
+  const potencialesBtnCopiar = document.getElementById("potencialesBtnCopiar");
+  // potencialesBtnLimpiar eliminado — P/S se reinicia automáticamente con cada carga
+
+  potencialesBtn.addEventListener("click", () => {
+    if (potencialesPanel.style.display !== "none") {
+      potencialesPanel.style.display = "none";
+      potencialesPinInput.value = "";
+      potencialesPinError.textContent = "";
+      return;
+    }
+    if (potencialesPinInput.value.trim() !== "7933") {
+      potencialesPinError.textContent = "Clave incorrecta.";
+      return;
+    }
+    potencialesPinError.textContent = "";
+    potencialesPinInput.value = "";
+    potencialesPanel.style.display = "block";
+    potencialesRenderListado();
+  });
+
+  function potencialesRenderListado() {
+    if (potencialesCoords.length === 0) {
+      potencialesListado.innerHTML = "<div style='color:var(--muted);font-size:0.8rem;'>Sin coordenadas aún.</div>";
+      potencialesCopiarRow.style.display = "none";
+      return;
+    }
+    const sortNums = arr => [...arr].sort((a, b) => {
+      const na = a === "00" ? -1 : parseInt(a);
+      const nb = b === "00" ? -1 : parseInt(b);
+      return na - nb;
+    });
+    const allNums = sortNums([...new Set(potencialesCoords.flatMap(r => r.numeros))]);
+    let html = "";
+    let seccionActual = null;
+    let primeraDelSegmento = true;
+    potencialesCoords.forEach(r => {
+      const abrev = r.segmento === "Largo" ? "L" : "C";
+      const sorted = sortNums(r.numeros);
+      const origenTag = r.origen ? ` <span style="color:var(--muted); font-size:0.72rem;">[${r.origen}]</span>` : '';
+      if (r.seccion && r.seccion !== seccionActual) {
+        seccionActual = r.seccion;
+        primeraDelSegmento = true;
+        const marginTop = html === "" ? "0" : "14px";
+        html += `<div style="margin-top:${marginTop}; margin-bottom:4px; color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #2f333a; padding-bottom:3px;">${r.seccion}</div>`;
+      }
+      const marginBottom = primeraDelSegmento ? "10px" : "10px";
+      primeraDelSegmento = false;
+      html += `<div style="margin-bottom:${marginBottom}; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}${origenTag}</div>`;
+    });
+    html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; color:var(--gold); font-weight:700;">Total N/S cobijado = ${allNums.length}</div>`;
+    html += `<div style="margin-top:4px; color:var(--gold);">Total: ${allNums.join(" - ")}</div>`;
+    potencialesListado.innerHTML = html;
+    potencialesCopiarRow.style.display = "block";
+  }
+
+  // Campo manual eliminado — P/S se alimenta automáticamente
+  // potencialesBtnAgregar / potencialesInput / potencialesAgregar
+
+  potencialesBtnCopiar.addEventListener("click", () => {
+    if (potencialesCoords.length === 0) return;
+    const sortNums = arr => [...arr].sort((a, b) => {
+      const na = a === "00" ? -1 : parseInt(a);
+      const nb = b === "00" ? -1 : parseInt(b);
+      return na - nb;
+    });
+    const allNums = sortNums([...new Set(potencialesCoords.flatMap(r => r.numeros))]);
+    const ahora = new Date();
+    const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const fecha = `${dias[ahora.getDay()]} ${ahora.getDate()} ${meses[ahora.getMonth()]}`;
+    let texto = 'Coordenadas L/C Números\n';
+    let seccionActualCopy = null;
+    let primeraLinea = true;
+    potencialesCoords.forEach(r => {
+      const abrev = r.segmento === "Largo" ? "L" : "C";
+      const nums = sortNums(r.numeros);
+      const origenTexto = r.origen ? ` [${r.origen}]` : '';
+      if (r.seccion && r.seccion !== seccionActualCopy) {
+        seccionActualCopy = r.seccion;
+        texto += primeraLinea ? `\n${r.seccion}\n` : `\n${r.seccion}\n`;
+        primeraLinea = false;
+      } else {
+        texto += `\n`;
+      }
+      texto += `Cords ${r.coord1}/${r.coord2} ${abrev} → ${nums.join(' - ')}${origenTexto}\n`;
+    });
+    texto += `\nFecha: ${fecha}\n`;
+    texto += `Número jugada nueva #${playCounter + 1}\n`;
+    texto += `Total N/S cobijado =${allNums.length}\n`;
+    texto += `Números a cobijar\n`;
+    texto += allNums.join(' - ');
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    potencialesBtnCopiar.textContent = "✓ Copiado";
+    setTimeout(() => { potencialesBtnCopiar.textContent = "Copiar todo"; }, 2000);
+  });
+
+  // Listener Limpiar eliminado
+
   // ── Exportar / Importar trazabilidad ────────────────────
   // Permite respaldar y restaurar `history` + `playCounter` como archivo
   // JSON, para migrar la trazabilidad entre navegadores/dispositivos sin
@@ -3378,6 +3435,23 @@
     return [...new Set(numeros)];
   }
 
+  // Calcula segmento y números para una coordenada individual (0-9)
+  // Retorna { coord1, coord2, segmento, numeros } o null si no hay par válido
+  function cnCalcular(digito) {
+    // Buscar el complemento que sume 9 (Corto) o 10 (Largo)
+    for (const suma of [9, 10]) {
+      const comp = suma - digito;
+      if (comp < 0 || comp > 9) continue;
+      const segNombre = suma === 10 ? "Largo" : "Corto";
+      const segLen = suma;
+      const coord1 = Math.min(digito, comp);
+      const coord2 = Math.max(digito, comp);
+      const numeros = cnCoordsToNumbers(coord1, coord2, segLen);
+      if (numeros.length > 0) return { coord1, coord2, segmento: segNombre, numeros };
+    }
+    return null;
+  }
+
   function cnBuscar() {
     cnError.textContent = "";
     const val = cnPar.value.trim();
@@ -3564,7 +3638,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#154 N#155<br>
+  Versión 1.5.1 · Actualización A#177 N#178<br>
   Jose Alex N-R
 </footer>
 
