@@ -1621,6 +1621,53 @@
         }
       });
     }
+    // ── POTENCIALES: Proceso 2 — Que libera Módulo Macho ──
+    if (quedadas.active) {
+      const rLib = quedadas.rachaLiberado;
+      const rDesc = quedadas.rachaDescanso;
+      const manoUmbral = manoAlertasActivas && manoAlertasActivas.length > 0;
+
+      // Señales hacia LIBERAR
+      const señalLib1 = rLib <= -3; // racha sin liberar -3 o más
+      const señalLib2 = manoUmbral; // umbral Macho de la Mano cumplido
+      const señalLib3 = rDesc >= -2 && rDesc <= -1; // descanso leve → no descansará
+
+      // Señales hacia NO LIBERAR
+      const señalNoLib1 = rLib >= -2; // racha lib sin presión
+      const señalNoLib2 = !manoUmbral; // sin umbral Mano
+      const señalNoLib3 = rDesc <= -3; // descanso acumulado → potencial descanso
+
+      const puntosLiberar = [señalLib1, señalLib2, señalLib3].filter(Boolean).length;
+      const puntosNoLiberar = [señalNoLib1, señalNoLib2, señalNoLib3].filter(Boolean).length;
+
+      if (puntosLiberar >= 2 && puntosLiberar > puntosNoLiberar) {
+        // MM potencial libera → coords de bodega van a P/S
+        quedadas.bodega.forEach((nivel, d) => {
+          if (nivel === null) return;
+          quedadas.bodega.forEach((nivel2, d2) => {
+            if (nivel2 === null || d2 <= d) return;
+            const suma = d + d2;
+            if (suma !== 9 && suma !== 10) return;
+            const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
+            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+            if (yaExiste) return;
+            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+            if (numeros.length > 0) potencialesCoords.push({
+              coord1, coord2,
+              segmento: suma === 10 ? "Largo" : "Corto",
+              numeros,
+              origen: `Racha lib ${rLib} · Mano ${manoUmbral ? '✓' : '✗'} · Desc ${rDesc}`,
+              seccion: "Que libera Módulo Macho"
+            });
+          });
+        });
+        reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚡ MM potencial LIBERA · señales: ${puntosLiberar}/3</div>`;
+      } else if (puntosNoLiberar >= 2 && puntosNoLiberar > puntosLiberar) {
+        // MM NO libera → alerta informativa, no va a P/S
+        reportDescansoAlert.innerHTML += `<div style="color:var(--muted); margin-top:4px;">⬜ MM sin señal de liberación · señales: ${puntosNoLiberar}/3 hacia no liberar</div>`;
+      }
+    }
+
     // ── POTENCIALES: Proceso 3 — Si descansa que libera ──
     // Parte A: detectar potencial de descanso (coord repetida 3+ veces en C1-C5)
     // Solo aplica cuando MM NO ha descansado (racha negativa)
@@ -1919,6 +1966,53 @@
       if (c5Low === c10Low && c5High === c10High) {
         c5c10IgualesHtml += `<div style="font-size:1.4rem; font-weight:800; color:var(--gold);">${c5Low} / ${c5High}</div>`;
         c5c10IgualesHtml += `<div style="margin-top:6px; color:var(--gold);">⚠️ Cords C5 C10 iguales sube 1/2 a módulo machos si MM no Descansa</div>`;
+
+        // ── P/S: C5=C10 → identificar cuántas suben a MM y cuáles se liberan ──
+        // Las que suben son las faltantes en "no van a MM" que coinciden con C5
+        const subenAMM = faltantes.filter(d => ordered[4].coords.includes(d));
+        if (subenAMM.length > 0) {
+          c5c10IgualesHtml += `<div style="margin-top:4px; color:#fff; font-size:0.78rem;">Sube a MM: ${subenAMM.join(', ')}</div>`;
+
+          // Anular de P/S los hermanos de las coords que suben, si están en bodega MM
+          subenAMM.forEach(dSube => {
+            // Hermanos válidos de dSube (suma 9 o 10)
+            for (let h = 0; h <= 9; h++) {
+              const suma = dSube + h;
+              if (suma !== 9 && suma !== 10) continue;
+              if (quedadas.active && quedadas.bodega[h] !== null) {
+                // Este hermano está en bodega MM → anular sus pares de P/S
+                potencialesCoords = potencialesCoords.filter(r =>
+                  !(r.coord1 === Math.min(dSube, h) && r.coord2 === Math.max(dSube, h))
+                );
+              }
+            }
+          });
+          c5c10IgualesHtml += `<div style="margin-top:4px; color:var(--red); font-size:0.78rem;">Hermanos de ${subenAMM.join('/')} en MM → anulados de P/S</div>`;
+          // Las que quedan en bodega (excluyendo las que suben) son las potenciales a liberar
+          if (quedadas.active) {
+            quedadas.bodega.forEach((nivel, d) => {
+              if (nivel === null) return;
+              if (subenAMM.includes(d)) return; // esta sube, no libera
+              quedadas.bodega.forEach((nivel2, d2) => {
+                if (nivel2 === null || d2 <= d) return;
+                if (subenAMM.includes(d2)) return;
+                const suma = d + d2;
+                if (suma !== 9 && suma !== 10) return;
+                const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
+                const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+                if (yaExiste) return;
+                const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+                if (numeros.length > 0) potencialesCoords.push({
+                  coord1, coord2,
+                  segmento: suma === 10 ? "Largo" : "Corto",
+                  numeros,
+                  origen: `MM carga ${subenAMM.join('/')} → libera #${d} y #${d2}`,
+                  seccion: "Que libera Módulo Macho"
+                });
+              });
+            });
+          }
+        }
       } else {
         c5c10IgualesHtml += `<div style="font-size:0.85rem;">—</div>`;
       }
@@ -3440,8 +3534,8 @@
       if (r.seccion && r.seccion !== seccionActual) {
         seccionActual = r.seccion;
         primeraDelSegmento = true;
-        const marginTop = html === "" ? "0" : "14px";
-        html += `<div style="margin-top:${marginTop}; margin-bottom:4px; color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #2f333a; padding-bottom:3px;">${r.seccion}</div>`;
+        const marginTop = html === estadoHtml ? "0" : "14px";
+        html += `<div style="margin-top:${marginTop}; margin-bottom:4px; color:var(--red); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #2f333a; padding-bottom:3px;">${r.seccion}</div>`;
       }
       const marginBottom = primeraDelSegmento ? "10px" : "10px";
       primeraDelSegmento = false;
@@ -3934,7 +4028,7 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#190 N#191<br>
+  Versión 1.5.1 · Actualización A#194 N#195<br>
   Jose Alex N-R<br>
   <span style="font-size:0.7rem; color:var(--muted);">Construyendo ando</span>
 </footer>
