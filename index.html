@@ -856,7 +856,7 @@
 
   <div id="reportPanel" style="display:none; margin-top:14px;">
     <label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
-      Últimos 12 giros · últimas 12 casillas · últimas 12 coordenadas
+      Orden repetición cordenadas últimos 12 giros
     </label>
     <div style="overflow-x:auto;">
       <table id="reportTable" style="border-collapse:collapse;width:100%;table-layout:fixed;text-align:center;">
@@ -1558,16 +1558,16 @@
         if (yaExiste) continue;
         const numeros = cnCoordsToNumbers(coord1, coord2, suma);
         const colA = potSeg1[i].cols, colB = potSeg1[j].cols;
-        if (numeros.length > 0) potencialesCoords.push({ coord1, coord2, segmento: suma === 10 ? "Largo" : "Corto", numeros, origen: `#${a}[${colA}] · #${b}[${colB}]`, seccion: 'Últimos 12 giros · últimas 12 casillas · últimas 12 coordenadas' });
+        if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}[${colA}] · #${b}[${colB}]`, 'Orden repetición cordenadas últimos 12 giros');
       }
     }
 
-    // ── POTENCIALES: Segmento 3 — Coordenadas fuertes Orden Repetición (freq 4+) ──
+    // ✅ ACTIVA — Segmento 3 — Coordenadas fuertes Orden Repetición (freq 3+)
     // Solo entran pares que NO estén ya en potencialesCoords del segmento 1
     {
       const fuertesSeg3 = [];
       for (let d = 0; d <= 9; d++) {
-        if (freq[d] >= 4) fuertesSeg3.push(d);
+        if (freq[d] >= 3) fuertesSeg3.push(d);
       }
       for (let i = 0; i < fuertesSeg3.length; i++) {
         for (let j = i + 1; j < fuertesSeg3.length; j++) {
@@ -1579,18 +1579,39 @@
           const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
           if (yaExiste) continue;
           const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-          if (numeros.length > 0) potencialesCoords.push({
-            coord1, coord2,
-            segmento: suma === 10 ? "Largo" : "Corto",
-            numeros,
-            origen: `#${a}(x${freq[a]}) · #${b}(x${freq[b]})`, seccion: 'Orden repetición coordenadas últimos 12 giros'
-          });
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}(x${freq[a]}) · #${b}(x${freq[b]})`, 'Orden repetición coordenadas últimos 12 giros');
         }
       }
     }
 
-    // ── POTENCIALES: Segmento 2 — Brothers de MM ──
+    // ✅ ACTIVA — Coord muy fuerte (freq>4) en 3 zonas → asegurar con dos hermanos
+    // Si una coord tiene freq>4 Y aparece en C1-C5, C6-C9 y C10-C12 simultáneamente
+    // → se asegura con sus dos hermanos (suma 9 Y suma 10) en P/S
+    if (ordered.length >= 12) {
+      const zonaCabeza = ordered.slice(0, 5);
+      const zonaFria   = ordered.slice(5, 9);
+      const zonaCola   = ordered.slice(9, 12);
+      for (let d = 0; d <= 9; d++) {
+        if (freq[d] <= 4) continue; // solo freq estrictamente mayor a 4
+        const enCabeza = zonaCabeza.some(e => e.coords.includes(d));
+        const enFria   = zonaFria.some(e => e.coords.includes(d));
+        const enCola   = zonaCola.some(e => e.coords.includes(d));
+        if (!enCabeza || !enFria || !enCola) continue; // debe estar en las 3 zonas
+        // Asegurar con los DOS hermanos: suma 9 y suma 10
+        [9, 10].forEach(targetSuma => {
+          const h = targetSuma - d;
+          if (h < 0 || h > 9 || h === d) return;
+          const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
+          const numeros = cnCoordsToNumbers(coord1, coord2, targetSuma);
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, targetSuma === 10 ? "Largo" : "Corto", numeros, `#${d}(x${freq[d]}) 3 zonas 🔥 asegurado`, 'Orden repetición cordenadas últimos 12 giros');
+        });
+      }
+    }
+
+    // ⏸️ PAUSADA — Segmento 2 — Brothers de MM en C1-C5
     // Cada par directo (coord MM + brother) va solo, sin mezclarse con segmento 1
+    // Pausada para testeo en fundación — reactivar cuando se indique
+    /*
     if (quedadas.active) {
       const zonaCaliente = ordered.slice(0, 5); // C1-C5
       quedadas.bodega.forEach((nivel, digito) => {
@@ -1606,152 +1627,128 @@
         }
         if (brothers.length > 0) {
           reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Cord #${digito} de MM tiene brother en ${brothers.join(' y ')}</div>`;
-          // Par directo: digito + brother — sin mezclar con segmento 1
           brothers.forEach(b => {
             const bNum = parseInt(b.split('#')[1]);
             if (isNaN(bNum)) return;
             const suma = digito + bNum;
             if (suma !== 9 && suma !== 10) return;
             const coord1 = Math.min(digito, bNum), coord2 = Math.max(digito, bNum);
-            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
-            if (yaExiste) return;
             const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-            if (numeros.length > 0) potencialesCoords.push({ coord1, coord2, segmento: suma === 10 ? "Largo" : "Corto", numeros, origen: "", seccion: "Módulo Macho / Brother de C1 a C5" });
+            if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, "", "Módulo Macho / Brother de C1 a C5");
           });
         }
       });
     }
-    // ── POTENCIALES: Proceso 2 — Que libera Módulo Macho ──
+    */
+    // ✅ ACTIVA — Proceso 2 — Que libera Módulo Macho
+    // Condición 1: rachaLiberado entre -3 y -4
+    // Condición 2: coord en bodega MM con hermano en Ord Rep freq≥3
     if (quedadas.active) {
       const rLib = quedadas.rachaLiberado;
-      const rDesc = quedadas.rachaDescanso;
-      const manoUmbral = manoAlertasActivas && manoAlertasActivas.length > 0;
-
-      // Señales hacia LIBERAR
-      const señalLib1 = rLib <= -3; // racha sin liberar -3 o más
-      const señalLib2 = manoUmbral; // umbral Macho de la Mano cumplido
-      const señalLib3 = rDesc >= -2 && rDesc <= -1; // descanso leve → no descansará
-
-      // Señales hacia NO LIBERAR
-      const señalNoLib1 = rLib >= -2; // racha lib sin presión
-      const señalNoLib2 = !manoUmbral; // sin umbral Mano
-      const señalNoLib3 = rDesc <= -3; // descanso acumulado → potencial descanso
-
-      const puntosLiberar = [señalLib1, señalLib2, señalLib3].filter(Boolean).length;
-      const puntosNoLiberar = [señalNoLib1, señalNoLib2, señalNoLib3].filter(Boolean).length;
-
-      if (puntosLiberar >= 2 && puntosLiberar > puntosNoLiberar) {
-        // MM potencial libera → coords de bodega van a P/S
+      if (rLib <= -3 && rLib >= -4) {
         quedadas.bodega.forEach((nivel, d) => {
           if (nivel === null) return;
-          quedadas.bodega.forEach((nivel2, d2) => {
-            if (nivel2 === null || d2 <= d) return;
-            const suma = d + d2;
-            if (suma !== 9 && suma !== 10) return;
-            const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
-            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
-            if (yaExiste) return;
+          for (let h = 0; h <= 9; h++) {
+            if (h === d) continue;
+            const suma = d + h;
+            if (suma !== 9 && suma !== 10) continue;
+            if (freq[h] < 3) continue;
+            const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
             const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-            if (numeros.length > 0) potencialesCoords.push({
-              coord1, coord2,
-              segmento: suma === 10 ? "Largo" : "Corto",
-              numeros,
-              origen: `Racha lib ${rLib} · Mano ${manoUmbral ? '✓' : '✗'} · Desc ${rDesc}`,
-              seccion: "Que libera Módulo Macho"
-            });
-          });
+            if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `MM #${d}[${nivel}] · Ord Rep #${h}(x${freq[h]}) · racha lib ${rLib}`, "Que libera Módulo Macho");
+          }
         });
-        reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚡ MM potencial LIBERA · señales: ${puntosLiberar}/3</div>`;
-      } else if (puntosNoLiberar >= 2 && puntosNoLiberar > puntosLiberar) {
-        // MM NO libera → alerta informativa, no va a P/S
-        reportDescansoAlert.innerHTML += `<div style="color:var(--muted); margin-top:4px;">⬜ MM sin señal de liberación · señales: ${puntosNoLiberar}/3 hacia no liberar</div>`;
       }
     }
 
-    // ── POTENCIALES: MM busca imán en zona caliente ──
-    // Coord en bodega MM con -5 o más + hermano válido en 3 zonas → P/S
-    if (quedadas.active && potSeg1.length > 0) {
+
+    // ── POTENCIALES: MM busca imán en Orden Repetición ──
+    // Coord en bodega MM + hermano con freq≥3 que aparezca en C1-C5 + C10-C12 (y opcionalmente C6-C9)
+    if (quedadas.active && ordered.length >= 12) {
+      const zonaCabeza = ordered.slice(0, 5);   // C1-C5
+      const zonaFria   = ordered.slice(5, 9);   // C6-C9
+      const zonaCola   = ordered.slice(9, 12);  // C10-C12
+
       quedadas.bodega.forEach((nivel, d) => {
-        if (nivel === null || nivel > -5) return; // solo coords con -5 o más en bodega
-        potSeg1.forEach(({ digito: dZona, cols }) => {
-          if (dZona === d) return;
-          const suma = d + dZona;
-          if (suma !== 9 && suma !== 10) return;
-          const coord1 = Math.min(d, dZona), coord2 = Math.max(d, dZona);
+        if (nivel === null) return; // cualquier coord en bodega, sin importar conteo
+        for (let h = 0; h <= 9; h++) {
+          if (h === d) continue;
+          const suma = d + h;
+          if (suma !== 9 && suma !== 10) continue;
+          if (freq[h] < 3) continue; // hermano debe tener freq ≥ 3
+
+          const enCabeza = zonaCabeza.some(e => e.coords.includes(h));
+          const enFria   = zonaFria.some(e => e.coords.includes(h));
+          const enCola   = zonaCola.some(e => e.coords.includes(h));
+
+          const treZonas = enCabeza && enFria && enCola;
+          const dosZonas = enCabeza && enCola;
+
+          if (!dosZonas) continue; // mínimo debe estar en C1-C5 y C10-C12
+
+          const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
           const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
-          if (yaExiste) return;
+          if (yaExiste) continue;
           const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-          if (numeros.length > 0) potencialesCoords.push({
-            coord1, coord2,
-            segmento: suma === 10 ? "Largo" : "Corto",
-            numeros,
-            origen: `MM #${d}[${nivel}] → imán #${dZona}[${cols}]`,
-            seccion: "Que libera Módulo Macho"
-          });
-        });
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `MM #${d}[${nivel}] → imán #${h}(x${freq[h]}) ${treZonas ? '3 zonas 🔥' : '2 zonas calientes'}`, "Que libera Módulo Macho");
+        }
       });
     }
 
-    // ── POTENCIALES: Proceso 3 — Si descansa que libera ──
-    // Parte A: detectar potencial de descanso (coord repetida 3+ veces en C1-C5)
-    // Solo aplica cuando MM NO ha descansado (racha negativa)
-    if (ordered.length >= 5 && quedadas.active) {
+    // ── Proceso 3 — Si descansa que libera ──
+    // Solo alerta cuando rachaDescanso === 3 (no habrá 4to descanso)
+    if (quedadas.active) {
       const rachaDesc = quedadas.rachaDescanso;
-      const zonaC1C5 = ordered.slice(0, 5);
-      const freqC1C5 = new Array(10).fill(0);
-      zonaC1C5.forEach(e => {
-        freqC1C5[e.coords[0]]++;
-        freqC1C5[e.coords[1]]++;
-      });
-      const repetidas = [];
-      for (let d = 0; d <= 9; d++) {
-        if (freqC1C5[d] >= 3) repetidas.push(`#${d}(x${freqC1C5[d]})`);
-      }
-      if (rachaDesc < 0 && repetidas.length > 0) {
-        // MM lleva sin descansar — potencial descanso próximo giro
-        reportDescansoAlert.innerHTML += `<div style="color:var(--gold); margin-top:4px;">⚠️ Potencial descanso próximo giro · MM ${rachaDesc} sin descansar · Cords repetidas C1-C5: ${repetidas.join(' ')}</div>`;
-      }
       if (rachaDesc === 3) {
-        // Llegó al máximo — el próximo giro no descansará
         reportDescansoAlert.innerHTML += `<div style="color:var(--red); margin-top:4px; font-weight:700;">⛔ MM +3 descansos — el próximo giro NO descansará</div>`;
       }
     }
+    // Parte B (coords C5/C4/C1) — comentada, pendiente de nueva lógica individual
+    /*
+    if (quedadas.active && quedadas.ultimoEvento && quedadas.ultimoEvento.descansó) { ... }
+    */
 
-    // Parte B: si el último giro descansó (racha +1 a +3), tomar coords de C5, C4, C1 → P/S
-    if (quedadas.active && quedadas.ultimoEvento && quedadas.ultimoEvento.descansó) {
-      const rachaDesc = quedadas.rachaDescanso;
-      if (rachaDesc >= 1 && rachaDesc <= 3 && ordered.length >= 5) {
-        const potDesc = [];
-        // C5 primero (70-80%), luego C4 (20%), luego C1
-        [4, 3, 0].forEach(idx => {
-          const col = `C${idx + 1}`;
-          ordered[idx].coords.forEach(d => {
-            if (!potDesc.find(x => x.digito === d)) potDesc.push({ digito: d, col });
-          });
+    // ── Lógica individual: racha descanso ≤ -10 → coords C5/C4/C1 potenciales ──
+    if (quedadas.active && quedadas.rachaDescanso <= -10 && ordered.length >= 5) {
+      const colsDesc = [
+        { idx: 4, col: 'C5' },
+        { idx: 3, col: 'C4' },
+        { idx: 0, col: 'C1' }
+      ];
+      const coordsDesc = [];
+      colsDesc.forEach(({ idx, col }) => {
+        ordered[idx].coords.forEach(d => {
+          if (!coordsDesc.find(x => x.digito === d)) coordsDesc.push({ digito: d, col });
         });
-        // Formar pares válidos entre las coords del descanso
-        for (let i = 0; i < potDesc.length; i++) {
-          for (let j = i + 1; j < potDesc.length; j++) {
-            const a = potDesc[i].digito, b = potDesc[j].digito;
-            const suma = a + b;
-            if (suma !== 9 && suma !== 10) continue;
-            const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
-            const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
-            if (yaExiste) continue;
-            const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-            if (numeros.length > 0) potencialesCoords.push({
-              coord1, coord2,
-              segmento: suma === 10 ? "Largo" : "Corto",
-              numeros,
-              origen: `${potDesc[i].col} · ${potDesc[j].col}`,
-              seccion: "Si descansa que libera"
-            });
-          }
+      });
+      // Paso 1: pares directos entre ellas si son hermanas
+      for (let i = 0; i < coordsDesc.length; i++) {
+        for (let j = i + 1; j < coordsDesc.length; j++) {
+          const a = coordsDesc[i].digito, b = coordsDesc[j].digito;
+          const suma = a + b;
+          if (suma !== 9 && suma !== 10) continue;
+          const coord1 = Math.min(a, b), coord2 = Math.max(a, b);
+          const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+          if (yaExiste) continue;
+          const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `${coordsDesc[i].col} · ${coordsDesc[j].col} · racha desc ${quedadas.rachaDescanso}`, "Si descansa que libera");
         }
       }
+      // Paso 2: si no son hermanas, buscar hermano en Orden Repetición freq ≥ 3
+      coordsDesc.forEach(({ digito: d, col }) => {
+        for (let h = 0; h <= 9; h++) {
+          if (h === d) continue;
+          const suma = d + h;
+          if (suma !== 9 && suma !== 10) continue;
+          if (freq[h] < 3) continue;
+          const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
+          const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
+          if (yaExiste) continue;
+          const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `${col} #${d} + Ord Rep #${h}(x${freq[h]}) · racha desc ${quedadas.rachaDescanso}`, "Si descansa que libera");
+        }
+      });
     }
-
-    // ── POTENCIALES: Proceso 4 — Tendencia descansos bloque actual ──
     if (quedadas.bloquesDescanso && quedadas.bloquesDescanso.length > 0 && ordered.length >= 5) {
       const bloqueActual = quedadas.bloquesDescanso[quedadas.bloquesDescanso.length - 1];
       if (bloqueActual && bloqueActual.conteo >= 3) {
@@ -1775,13 +1772,7 @@
             const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
             if (yaExiste) continue;
             const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-            if (numeros.length > 0) potencialesCoords.push({
-              coord1, coord2,
-              segmento: suma === 10 ? "Largo" : "Corto",
-              numeros,
-              origen: `${potTend[i].col} · ${potTend[j].col} · ${bloqueActual.conteo} desc en bloque`,
-              seccion: "Tendencia descansos · C5/C4/C1"
-            });
+            if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `${potTend[i].col} · ${potTend[j].col} · ${bloqueActual.conteo} desc en bloque`, "Tendencia descansos · C5/C4/C1");
           }
         }
       }
@@ -1842,13 +1833,7 @@
             const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
             if (yaExiste) return;
             const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-            if (numeros.length > 0) potencialesCoords.push({
-              coord1, coord2,
-              segmento: suma === 10 ? "Largo" : "Corto",
-              numeros,
-              origen: `#${d} y #${d2} en C5`,
-              seccion: "Coordenadas que no van a MM · C5 semáforo"
-            });
+            if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${d} y #${d2} en C5`, "Coordenadas que no van a MM · C5 semáforo");
           });
         } else {
           // Sin potencial descanso → potencial carga a MM, solo alerta
@@ -1862,69 +1847,34 @@
       fuertesHtml += `<div style="font-size:0.85rem;">—</div>`;
       fuertesHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
 
-      // ── Señales del Bloque Vacío: ¿MM libera o descansa? ──
+      // ✅ ACTIVA — Bloque Vacío · Escenario A — MM libera
+      // Condición 1: rachaLiberado entre -1 y -4
+      // Condición 2: coord en bodega MM con hermano en Ord Rep freq≥3
       if (quedadas.active) {
         const rLib = quedadas.rachaLiberado;
-        const rDesc = quedadas.rachaDescanso;
-        const manoUmbral = manoAlertasActivas && manoAlertasActivas.length > 0;
-
-        // Contar señales hacia cada escenario
-        let señalesLiberar = 0;
-        let señalesDescansar = 0;
-
-        // Señales hacia LIBERAR
-        if (rLib <= -2 && rLib >= -4) señalesLiberar++;
-        if (rDesc >= 2 && rDesc <= 3) señalesLiberar++;
-        if (manoUmbral) señalesLiberar++;
-
-        // Señales hacia DESCANSAR
-        if (rDesc <= -2 && rDesc >= -3) señalesDescansar++;
-        if (rLib >= 0 || rLib < -4) señalesDescansar++;
-        if (!manoUmbral) señalesDescansar++;
-
-        fuertesHtml += `<div style="margin-top:8px; border-top:1px solid #2f333a; padding-top:6px;">`;
-
-        if (señalesLiberar > señalesDescansar) {
-          // Escenario A: MM libera
-          fuertesHtml += `<div style="color:var(--gold); font-weight:700;">⚡ Escenario A · MM potencial LIBERA</div>`;
-          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
-          fuertesHtml += `Racha lib: ${rLib} · Racha desc: ${rDesc} · Mano: ${manoUmbral ? 'umbral ✓' : 'sin umbral'}`;
-          fuertesHtml += `</div>`;
-          // Coordenadas de MM a P/S
+        if (rLib <= -1 && rLib >= -4) {
+          let hayPar = false;
           quedadas.bodega.forEach((nivel, d) => {
             if (nivel === null) return;
-            quedadas.bodega.forEach((nivel2, d2) => {
-              if (nivel2 === null || d2 <= d) return;
-              const suma = d + d2;
-              if (suma !== 9 && suma !== 10) return;
-              const coord1 = Math.min(d, d2), coord2 = Math.max(d, d2);
-              const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
-              if (yaExiste) return;
+            for (let h = 0; h <= 9; h++) {
+              if (h === d) continue;
+              const suma = d + h;
+              if (suma !== 9 && suma !== 10) continue;
+              if (freq[h] < 3) continue;
+              const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
               const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-              if (numeros.length > 0) potencialesCoords.push({
-                coord1, coord2,
-                segmento: suma === 10 ? "Largo" : "Corto",
-                numeros,
-                origen: `MM bodega #${d}[${nivel}] · #${d2}[${nivel2}]`,
-                seccion: "Bloque Vacío · MM libera"
-              });
-            });
+              if (numeros.length > 0) {
+                potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `Bloque Vacío · MM #${d}[${nivel}] · Ord Rep #${h}(x${freq[h]}) · racha lib ${rLib}`, "Bloque Vacío · MM libera");
+                hayPar = true;
+              }
+            }
           });
-        } else if (señalesDescansar > señalesLiberar) {
-          // Escenario B: Descansa → coords de C5, C4, C1
-          fuertesHtml += `<div style="color:var(--gold); font-weight:700;">⚡ Escenario B · Potencial DESCANSO · Libera C5/C4/C1</div>`;
-          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
-          fuertesHtml += `Racha lib: ${rLib} · Racha desc: ${rDesc} · Mano: ${manoUmbral ? 'umbral ✓' : 'sin umbral'}`;
-          fuertesHtml += `</div>`;
-        } else {
-          // Empate: mostrar ambos y el humano decide
-          fuertesHtml += `<div style="color:var(--red); font-weight:700;">⚠️ Señales empatadas · El humano decide</div>`;
-          fuertesHtml += `<div style="font-size:0.78rem; color:#fff; margin-top:4px;">`;
-          fuertesHtml += `Escenario A (MM libera): ${señalesLiberar} señales · Escenario B (Descansa): ${señalesDescansar} señales`;
-          fuertesHtml += `</div>`;
+          if (hayPar) {
+            fuertesHtml += `<div style="margin-top:8px; border-top:1px solid #2f333a; padding-top:6px;">`;
+            fuertesHtml += `<div style="color:var(--gold); font-weight:700;">⚡ Bloque Vacío · MM potencial LIBERA · racha lib ${rLib}</div>`;
+            fuertesHtml += `</div>`;
+          }
         }
-
-        fuertesHtml += `</div>`;
       }
     } else {
       // Coordenadas faltantes, destacadas y solas
@@ -1997,6 +1947,31 @@
         if (subenAMM.length > 0) {
           c5c10IgualesHtml += `<div style="margin-top:4px; color:#fff; font-size:0.78rem;">Sube a MM: ${subenAMM.join(', ')}</div>`;
 
+          // ── Alertas de posible bloqueo de subida a MM ──
+          subenAMM.forEach(dSube => {
+            // Bloqueo 1: hermano en bodega MM con rachaLiberado -3 o -4
+            if (quedadas.active) {
+              const rLib = quedadas.rachaLiberado;
+              for (let h = 0; h <= 9; h++) {
+                const suma = dSube + h;
+                if (suma !== 9 && suma !== 10) continue;
+                if (quedadas.bodega[h] !== null && rLib <= -3 && rLib >= -4) {
+                  c5c10IgualesHtml += `<div style="margin-top:4px; color:var(--gold); font-size:0.78rem;">⚠️ Revisa: Cord #${dSube} en C5 · hermano #${h} en MM con racha lib ${rLib} · posible bloqueo de subida a MM</div>`;
+                  break;
+                }
+              }
+            }
+            // Bloqueo 2: hermano en Ord Rep con freq ≥ 3
+            for (let h = 0; h <= 9; h++) {
+              const suma = dSube + h;
+              if (suma !== 9 && suma !== 10) continue;
+              if (freq[h] >= 3) {
+                c5c10IgualesHtml += `<div style="margin-top:4px; color:var(--gold); font-size:0.78rem;">⚠️ Revisa: Cord #${dSube} en C5 · hermano #${h} en Ord Rep (x${freq[h]}) · posible bloqueo de subida a MM</div>`;
+                break;
+              }
+            }
+          });
+
           // Anular de P/S los hermanos de las coords que suben, si están en bodega MM
           // Y también anular la propia coordenada que sube (va a cargar, no a liberar)
           const anuladas = new Set();
@@ -2031,13 +2006,7 @@
                 const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
                 if (yaExiste) return;
                 const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-                if (numeros.length > 0) potencialesCoords.push({
-                  coord1, coord2,
-                  segmento: suma === 10 ? "Largo" : "Corto",
-                  numeros,
-                  origen: `MM carga ${subenAMM.join('/')} → libera #${d} y #${d2}`,
-                  seccion: "Que libera Módulo Macho"
-                });
+                if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `MM carga ${subenAMM.join('/')} → libera #${d} y #${d2}`, "Que libera Módulo Macho");
               });
             });
           }
@@ -3094,13 +3063,7 @@
               const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
               if (yaExiste) continue;
               const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-              if (numeros.length > 0) potencialesCoords.push({
-                coord1, coord2,
-                segmento: suma === 10 ? "Largo" : "Corto",
-                numeros,
-                origen: `#${a}[${conteo}] · #${b}[${conteo}]`,
-                seccion: "Coordenadas Macho de la Mano"
-              });
+              if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}[${conteo}] · #${b}[${conteo}]`, "Coordenadas Macho de la Mano");
             }
           }
         } else if (grupo.length === 4 && conteo <= -4) {
@@ -3116,13 +3079,7 @@
               const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
               if (yaExiste) continue;
               const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-              if (numeros.length > 0) potencialesCoords.push({
-                coord1, coord2,
-                segmento: suma === 10 ? "Largo" : "Corto",
-                numeros,
-                origen: `#${a}[${conteo}] · #${b}[${conteo}]`,
-                seccion: "Coordenadas Macho de la Mano"
-              });
+              if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}[${conteo}] · #${b}[${conteo}]`, "Coordenadas Macho de la Mano");
             }
           }
         }
@@ -3483,7 +3440,17 @@
     }
   });
 
-  // ── Sección POTENCIALES ────────────────────────────────
+  // ── Función auxiliar P/S: agrega par o anota origen adicional si ya existe ──
+  function potencialesAgregarOAnotar(coord1, coord2, segmento, numeros, origen, seccion) {
+    const existente = potencialesCoords.find(r => r.coord1 === coord1 && r.coord2 === coord2);
+    if (existente) {
+      // Ya existe — anotar que otra lógica también lo detectó
+      if (!existente.tambienDetectado) existente.tambienDetectado = [];
+      existente.tambienDetectado.push(`${seccion}: ${origen}`);
+    } else {
+      potencialesCoords.push({ coord1, coord2, segmento, numeros, origen, seccion });
+    }
+  }
   // Buffer de coordenadas individuales detectadas en cada carga
 
   function potencialesRegistrarCoord(digito) {
@@ -3569,7 +3536,10 @@
         seccionActual = r.seccion;
         html += `<div style="margin-top:12px; margin-bottom:4px; color:var(--red); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #2f333a; padding-bottom:3px;">${r.seccion}</div>`;
       }
-      html += `<div style="margin-bottom:10px; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}${origenTag}</div>`;
+            const tambienTag = r.tambienDetectado && r.tambienDetectado.length > 0
+        ? `<div style="color:var(--muted); font-size:0.7rem; margin-top:2px; margin-bottom:6px;">⚠️ También detectado: ${r.tambienDetectado.join(' · ')}</div>`
+        : '';
+      html += `<div style="margin-bottom:4px; color:var(--gold);">Cords ${r.coord1}/${r.coord2} ${abrev} → ${sorted.join(" - ")}${origenTag}</div>${tambienTag}`;
     });
 
     html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #2f333a; color:var(--gold); font-weight:700;">Total N/S cobijado = ${allNums.length}</div>`;
@@ -3623,7 +3593,7 @@
   potencialesBtnCopiar.addEventListener("click", () => {
     if (potencialesCoords.length === 0) return;
     const seccionesConf = [
-      'Últimos 12 giros · últimas 12 casillas · últimas 12 coordenadas',
+      'Orden repetición cordenadas últimos 12 giros',
       'Orden repetición coordenadas últimos 12 giros',
       'Manual'
     ];
@@ -4065,11 +4035,13 @@
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#200 N#201<br>
+  Versión 1.5.1 · Actualización A#213 N#214<br>
   Jose Alex N-R<br>
-  <span style="font-size:0.7rem; color:var(--muted);">Construyendo ando</span>
+  <span style="font-size:0.7rem; color:var(--muted);">Construyendo ando · ALFA Proyecto Inclusivo Contra la Ludopatía Global · Herramienta educativa para fundaciones · Colombia 2025 · Desarrollado con IA Claude · Anthropic · Uso exclusivo fundaciones certificadas · No apto para uso comercial sin autorización · Todos los derechos reservados Jose Alex N-R · Software de apoyo terapéutico contra la ludopatía · Prohibida su reproducción total o parcial sin autorización expresa del autor · Este software es una herramienta de demostración estadística que prueba que ningún sistema puede ganar consistentemente a la ruleta a largo plazo · Su propósito es educativo y terapéutico exclusivamente</span>
 </footer>
 
+
+<!-- ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL -->
 </body>
 </html>
 
