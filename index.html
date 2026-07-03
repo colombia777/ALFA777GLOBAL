@@ -937,6 +937,18 @@
 
 </div>
 
+<!-- ══ BORRADOR DE TEXTOS ══ -->
+<div style="margin:16px 8px; padding:12px; background:#1a1d23; border:1px solid #2f333a; border-radius:10px;">
+  <label style="display:block; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">📝 Borrador de textos</label>
+  <div style="display:flex; gap:6px; margin-bottom:8px;">
+    <input type="text" id="borradorInput" placeholder="Escribe aquí..." style="flex:1; background:#0d0f14; border:1px solid #2f333a; color:#fff; border-radius:8px; padding:8px; font-size:0.85rem;">
+    <button id="borradorGuardar" style="background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:8px 14px; font-size:0.85rem; font-weight:700;">Guardar</button>
+  </div>
+  <div id="borradorListado" style="font-size:0.82rem; color:#fff; max-height:200px; overflow-y:auto;"></div>
+  <button id="borradorLimpiar" style="margin-top:8px; background:transparent; border:1px solid var(--red); color:var(--red); border-radius:8px; padding:6px 14px; font-size:0.8rem; width:100%;">Limpiar borrador</button>
+</div>
+<!-- ══ FIN BORRADOR ══-->
+
 <script>
   // Secuencia oficial de la ruleta americana (38 casillas, en orden físico)
   const SEQUENCE = [
@@ -1579,7 +1591,7 @@
           const yaExiste = potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2);
           if (yaExiste) continue;
           const numeros = cnCoordsToNumbers(coord1, coord2, suma);
-          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}(x${freq[a]}) · #${b}(x${freq[b]})`, 'Orden repetición coordenadas últimos 12 giros');
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `#${a}(x${freq[a]}) · #${b}(x${freq[b]})`, 'Orden repetición cordenadas últimos 12 giros');
         }
       }
     }
@@ -1765,6 +1777,7 @@
         // Formar pares válidos
         for (let i = 0; i < potTend.length; i++) {
           for (let j = i + 1; j < potTend.length; j++) {
+            if (potTend[i].col === potTend[j].col) continue; // misma columna → omitir
             const a = potTend[i].digito, b = potTend[j].digito;
             const suma = a + b;
             if (suma !== 9 && suma !== 10) continue;
@@ -3594,7 +3607,7 @@
     if (potencialesCoords.length === 0) return;
     const seccionesConf = [
       'Orden repetición cordenadas últimos 12 giros',
-      'Orden repetición coordenadas últimos 12 giros',
+      'Orden repetición cordenadas últimos 12 giros',
       'Manual'
     ];
     const sortNums = arr => [...arr].sort((a, b) => {
@@ -3643,7 +3656,6 @@
 
   // Listener Limpiar eliminado
 
-  // ── Exportar / Importar trazabilidad ────────────────────
   // Permite respaldar y restaurar `history` + `playCounter` como archivo
   // JSON, para migrar la trazabilidad entre navegadores/dispositivos sin
   // tener que recargar número por número. No afecta ningún cálculo: solo
@@ -4032,13 +4044,54 @@
   // ══ FIN LÓGICA SECCIÓN: Coordenadas / Números ══
 
 
+
+  // ── Borrador de textos ────────────────────────────────
+  const borradorInput = document.getElementById("borradorInput");
+  const borradorGuardar = document.getElementById("borradorGuardar");
+  const borradorListado = document.getElementById("borradorListado");
+  const borradorLimpiar = document.getElementById("borradorLimpiar");
+
+  function borradorRender() {
+    const items = JSON.parse(localStorage.getItem("alfa_borrador") || "[]");
+    if (items.length === 0) {
+      borradorListado.innerHTML = "<span style='color:var(--muted);'>Sin notas aún.</span>";
+      return;
+    }
+    borradorListado.innerHTML = items.map((txt, i) =>
+      `<div style="padding:4px 0; border-bottom:1px solid #2f333a;">${i + 1}. ${txt}</div>`
+    ).join('');
+  }
+
+  borradorGuardar.addEventListener("click", () => {
+    const val = borradorInput.value.trim();
+    if (!val) return;
+    const items = JSON.parse(localStorage.getItem("alfa_borrador") || "[]");
+    items.push(val);
+    localStorage.setItem("alfa_borrador", JSON.stringify(items));
+    borradorInput.value = "";
+    borradorRender();
+  });
+
+  borradorInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") borradorGuardar.click();
+  });
+
+  borradorLimpiar.addEventListener("click", () => {
+    if (!confirm("¿Limpiar todo el borrador?")) return;
+    localStorage.removeItem("alfa_borrador");
+    borradorRender();
+  });
+
+  borradorRender();
+
 </script>
 
 <footer style="text-align:center; margin-top:24px; padding:12px; color:var(--muted); font-size:0.75rem;">
-  Versión 1.5.1 · Actualización A#213 N#214<br>
+  Versión 1.5.1 · Actualización A#217 N#218<br>
   Jose Alex N-R<br>
   <span style="font-size:0.7rem; color:var(--muted);">Construyendo ando · ALFA Proyecto Inclusivo Contra la Ludopatía Global · Herramienta educativa para fundaciones · Colombia 2025 · Desarrollado con IA Claude · Anthropic · Uso exclusivo fundaciones certificadas · No apto para uso comercial sin autorización · Todos los derechos reservados Jose Alex N-R · Software de apoyo terapéutico contra la ludopatía · Prohibida su reproducción total o parcial sin autorización expresa del autor · Este software es una herramienta de demostración estadística que prueba que ningún sistema puede ganar consistentemente a la ruleta a largo plazo · Su propósito es educativo y terapéutico exclusivamente</span>
 </footer>
+
 
 
 <!-- ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL -->
