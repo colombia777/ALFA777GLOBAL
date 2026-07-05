@@ -2051,7 +2051,7 @@
     reportPanel.style.display = "block";
 
     // ── Sesión Hipótesis ──
-    renderHipotesis(quedadas, manoAlertasActivas, history, ordered);
+    renderHipotesis(quedadas, manoAlertasActivas, history, ordered, noVanMachoSet);
 
     // renderLiberacion eliminada — FRO era falacia comprobada
     // renderLiberacion(ordered, freq, quedadas);
@@ -2700,6 +2700,48 @@
         html += `</div>`;
       }
 
+      // H6 — 6 números mismo color → próximo color contrario
+      {
+        const ultimos6Pdf = history.slice(0, 6).filter(e => e.color === 'red' || e.color === 'black');
+        let h6ActivaPdf = false, h6RachaPdf = '', h6ProximoPdf = '';
+        if (ultimos6Pdf.length === 6) {
+          const todosRojosPdf = ultimos6Pdf.every(e => e.color === 'red');
+          const todosNegrosPdf = ultimos6Pdf.every(e => e.color === 'black');
+          if (todosRojosPdf) { h6ActivaPdf = true; h6RachaPdf = 'ROJO'; h6ProximoPdf = 'NEGRO'; }
+          if (todosNegrosPdf) { h6ActivaPdf = true; h6RachaPdf = 'NEGRO'; h6ProximoPdf = 'ROJO'; }
+        }
+        html += `<div style="${BLK_H}">`;
+        html += `<div style="${TTL_H}">Hipótesis #6</div>`;
+        html += `<div style="${TXT_H}">${h6ActivaPdf ? `Los últimos 6 números cargados fueron ${h6RachaPdf} → próximo potencial: ${h6ProximoPdf}` : 'Sin racha de 6 números del mismo color actualmente.'}</div>`;
+        if (h6ActivaPdf) html += `<div style="${ACT_H}">⚡ ACTIVA · Los últimos 6 fueron ${h6RachaPdf} · Próximo potencial: ${h6ProximoPdf}</div>`;
+        html += `</div>`;
+
+        // Atracción de Familia PDF
+        {
+          const familiaP = [0, 1, 9];
+          const enMMp = familiaP.filter(d => result && result.active && result.bodega && result.bodega[d] !== null);
+          // Calcular C5 coords localmente desde history
+          const freqC5p = new Array(10).fill(0);
+          history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC5p[d]++; }); });
+          const sortedC5p = freqC5p.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
+          const c5coordsP = sortedC5p.length >= 5 ? [sortedC5p[4].d] : [];
+          const atraidasP = familiaP.filter(d => !enMMp.includes(d) && c5coordsP.includes(d));
+          const nvmSet = result && result.bodega ? new Set(result.bodega.map((v,d) => v !== null ? d : null).filter(d => d !== null)) : new Set();
+          const libresP = atraidasP.filter(d => !nvmSet.has(d));
+          const bloqueasP = atraidasP.filter(d => nvmSet.has(d));
+          const hAfP = enMMp.length >= 1 && libresP.length > 0;
+          const fueraFamiliaP = result && result.active && result.bodega
+            ? result.bodega.map((v, d) => v !== null && !familiaP.includes(d) ? d : null).filter(d => d !== null)
+            : [];
+          html += `<div style="${BLK_H}">`;
+          html += `<div style="${TTL_H}">Atracción de Familia</div>`;
+          html += `<div style="${TXT_H}">Familia 0·1·9: si 2 en MM y la tercera en C5 sin bloqueo → potencial atracción.</div>`;
+          if (hAfP) html += `<div style="${ACT_H}">⚡ ACTIVA · MM: #${enMMp.join(' #')} · Atraída: #${libresP.join(' #')}${fueraFamiliaP.length > 0 ? ` · Lib: #${fueraFamiliaP.join(' #')}` : ''}</div>`;
+          else if (bloqueasP.length > 0) html += `<div style="font-size:8px; color:#cc0000;">⚠️ Bloqueada: #${bloqueasP.join(' #')}</div>`;
+          html += `</div>`;
+        }
+      }
+
       html += `</div>`;
     }
 
@@ -3127,7 +3169,7 @@
     quedadasPanel.style.display = "block";
   }
 
-  function renderHipotesis(quedadas, manoAlertas, history, ordered) {
+  function renderHipotesis(quedadas, manoAlertas, history, ordered, noVanMachoSet) {
     if (!quedadas || !quedadas.active) {
       hipotesisContent.innerHTML = `<div style="font-size:0.8rem; color:var(--muted);">Cargando datos...</div>`;
       return;
@@ -3192,6 +3234,48 @@
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #5</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Las 2 coordenadas con mayor tendencia en los últimos 3 a 5 números cargados.</div>
         ${h5Activa ? `<div style="color:red; font-weight:700;">⚡ ACTIVA · Coord #${top2[0].d}(x${top2[0].f}) · Coord #${top2[1].d}(x${top2[1].f})</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #6 — últimos 6 números mismo color → próximo color contrario
+    {
+      const ultimos6 = history.slice(0, 6);
+      let h6Activa = false, h6ColorRacha = '', h6ColorProximo = '';
+      if (ultimos6.length === 6) {
+        const todosRojos = ultimos6.every(e => e.color === 'red');
+        const todosNegros = ultimos6.every(e => e.color === 'black');
+        if (todosRojos) { h6Activa = true; h6ColorRacha = 'ROJO 🔴'; h6ColorProximo = 'NEGRO ⚫'; }
+        if (todosNegros) { h6Activa = true; h6ColorRacha = 'NEGRO ⚫'; h6ColorProximo = 'ROJO 🔴'; }
+      }
+      html += `<div id="h6Block" style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #6</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">${h6Activa ? `Los últimos 6 números cargados fueron ${h6ColorRacha} → próximo potencial: ${h6ColorProximo}` : 'Sin racha de 6 números del mismo color actualmente.'}</div>
+        ${h6Activa ? `<div style="color:red; font-weight:700;">⚡ ACTIVA · Los últimos 6 fueron ${h6ColorRacha} · Próximo potencial: ${h6ColorProximo}</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis — Atracción de Familia (0, 1, 9)
+    {
+      const familia = [0, 1, 9];
+      const enMM = familia.filter(d => quedadas.active && quedadas.bodega && quedadas.bodega[d] !== null);
+      const enC5 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const atraidas = familia.filter(d => !enMM.includes(d) && enC5.includes(d));
+      const bloqueadas = atraidas.filter(d => noVanMachoSet && noVanMachoSet.has(d));
+      const libres = atraidas.filter(d => !noVanMachoSet || !noVanMachoSet.has(d));
+      const hAfActiva = enMM.length >= 1 && libres.length > 0;
+
+      // Parte 2: coords fuera de familia que están en MM → potenciales a liberar
+      const fueraFamilia = quedadas.active && quedadas.bodega
+        ? quedadas.bodega.map((v, d) => v !== null && !familia.includes(d) ? d : null).filter(d => d !== null)
+        : [];
+
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis — Atracción de Familia</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Familia: coords 0 · 1 · 9. Si 2 están en MM y la tercera está en C5 sin bloqueo → potencial atracción a MM. Las demás coords en MM son potenciales a liberar.</div>
+        ${hAfActiva
+          ? `<div style="color:red; font-weight:700;">⚡ ACTIVA · En MM: #${enMM.join(' #')} · Atraída a MM: #${libres.join(' #')}${fueraFamilia.length > 0 ? ` · Potenciales a liberar: #${fueraFamilia.join(' #')}` : ''}</div>`
+          : `${bloqueadas.length > 0 ? `<div style="color:#ff8a80; font-size:0.8rem;">⚠️ Bloqueada: coord #${bloqueadas.join(' #')} no puede subir a MM</div>` : ''}`
+        }
       </div>`;
     }
 
