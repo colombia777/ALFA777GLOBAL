@@ -2631,38 +2631,24 @@
 
     // ── Hipótesis ──
     {
-      const BLK_H = `background:#f0f0ff; border:1px solid #7c83fd; border-radius:2mm; padding:2mm; margin-bottom:2mm;`;
-      const TTL_H = `font-size:7px; letter-spacing:0.08em; text-transform:uppercase; color:#7c83fd; margin-bottom:1mm; font-weight:700;`;
-      const TXT_H = `font-size:8px; color:#000; line-height:1.4; margin-bottom:1mm;`;
-      const ACT_H = `font-size:8px; color:red; font-weight:700;`;
-
-      html += `<div style="margin-top:2mm;">`;
-      html += `<div style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:#7c83fd; font-weight:700; margin-bottom:2mm;">🧠 Hipótesis</div>`;
+      const LN = `font-size:7.5px; color:#000; line-height:1.5; margin:0; padding:0;`;
+      const LN_ACT = `font-size:7.5px; color:#000; line-height:1.5; margin:0; padding:0;`;
+      const hipLines = [];
 
       // H1
       const rLibPdf = result && result.active ? result.rachaLiberado : null;
       const h1ActivaPdf = rLibPdf !== null && rLibPdf <= -3 && rLibPdf >= -4;
-      html += `<div style="${BLK_H}">`;
-      html += `<div style="${TTL_H}">Hipótesis #1</div>`;
-      html += `<div style="${TXT_H}">Cuando Liberado MM llega a -3 o -4 hay alta probabilidad de liberación en el próximo giro.</div>`;
-      if (h1ActivaPdf) html += `<div style="${ACT_H}">⚡ ACTIVA · Liberado MM ${rLibPdf}</div>`;
-      html += `</div>`;
+      if (h1ActivaPdf) hipLines.push(`H1 · Cuando Liberado MM llega a -3 o -4 → ⚡ ACTIVA · Liberado MM ${rLibPdf}`);
 
       // H2
       const h2ActivaPdf = manoAlertasActivas && manoAlertasActivas.length > 0;
-      html += `<div style="${BLK_H}">`;
-      html += `<div style="${TTL_H}">Hipótesis #2</div>`;
-      html += `<div style="${TXT_H}">Cuando Coordenadas Macho de la Mano cumplen su umbral (par ≤-10 · trío ≤-5 · cuarteto ≤-3) son candidatas a liberar o cualquiera que esté en Módulo Macho.</div>`;
-      if (h2ActivaPdf) html += `<div style="${ACT_H}">⚡ ACTIVA · ${manoAlertasActivas.join(' · ')}</div>`;
-      html += `</div>`;
+      if (h2ActivaPdf) hipLines.push(`H2 · Coords Macho de la Mano cumplen umbral → ⚡ ACTIVA · ${manoAlertasActivas.join(' · ')}`);
 
       // H3
-      let h3ActivaPdf = false;
-      let h3BloqueadasPdf = [];
+      let h3ActivaPdf = false, h3BloqueadasPdf = [];
       if (history.length > 0 && Array.isArray(history[0].coords)) {
         const ultimaCoords = history[0].coords;
         const coord5EnUltima = ultimaCoords.includes(5);
-        // Calcular C1 coords localmente
         const last12Pdf2 = history.slice(0, 12);
         const freqPdf = new Array(10).fill(0);
         last12Pdf2.forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqPdf[d]++; }); });
@@ -2675,74 +2661,50 @@
           h3ActivaPdf = h3BloqueadasPdf.length > 0;
         }
       }
-      html += `<div style="${BLK_H}">`;
-      html += `<div style="${TTL_H}">Hipótesis #3</div>`;
-      html += `<div style="${TXT_H}">Cuando la coord 5 del último número cargado está en C1 → próximo giro MM no liberará 5/5 · 4/5 · 0/9 si están en Módulo Macho.</div>`;
-      if (h3ActivaPdf) html += `<div style="${ACT_H}">⚡ ACTIVA · Coord 5 en C1 · bloqueadas en MM: #${h3BloqueadasPdf.join(' #')}</div>`;
-      html += `</div>`;
+      if (h3ActivaPdf) hipLines.push(`H3 · Coord 5 en C1 → MM no liberará 5/5·4/5·0/9 si en MM → ⚡ ACTIVA · bloqueadas: #${h3BloqueadasPdf.join(' #')}`);
 
-      // H4 — solo título por ahora
-      html += `<div style="${BLK_H}">`;
-      html += `<div style="${TTL_H}">Hipótesis #4</div>`;
-      html += `<div style="${TXT_H}">Rachas MM · Módulo Macho</div>`;
-      html += `</div>`;
+      // H5
+      const ventanaPdf = history.slice(0, 5).filter(e => Array.isArray(e.coords));
+      const freqV = new Array(10).fill(0);
+      ventanaPdf.forEach(e => e.coords.forEach(d => { if (d >= 0 && d <= 9) freqV[d]++; }));
+      const top2Pdf = freqV.map((f, d) => ({ d, f })).filter(x => x.f > 0).sort((a, b) => b.f - a.f).slice(0, 2);
+      if (top2Pdf.length >= 2) hipLines.push(`H5 · 2 coords mayor tendencia últimos 3-5 números → ⚡ ACTIVA · Coord #${top2Pdf[0].d}(x${top2Pdf[0].f}) · Coord #${top2Pdf[1].d}(x${top2Pdf[1].f})`);
 
-      // H5 — 2 coordenadas en tendencia últimos 3-5 números
-      {
-        const ventanaPdf = history.slice(0, 5).filter(e => Array.isArray(e.coords));
-        const freqV = new Array(10).fill(0);
-        ventanaPdf.forEach(e => e.coords.forEach(d => { if (d >= 0 && d <= 9) freqV[d]++; }));
-        const top2Pdf = freqV.map((f, d) => ({ d, f })).filter(x => x.f > 0).sort((a, b) => b.f - a.f).slice(0, 2);
-        html += `<div style="${BLK_H}">`;
-        html += `<div style="${TTL_H}">Hipótesis #5</div>`;
-        html += `<div style="${TXT_H}">Las 2 coordenadas con mayor tendencia en los últimos 3 a 5 números cargados.</div>`;
-        if (top2Pdf.length >= 2) html += `<div style="${ACT_H}">⚡ ACTIVA · Coord #${top2Pdf[0].d}(x${top2Pdf[0].f}) · Coord #${top2Pdf[1].d}(x${top2Pdf[1].f})</div>`;
-        html += `</div>`;
+      // H6
+      const ultimos6Pdf = history.slice(0, 6).filter(e => e.color === 'red' || e.color === 'black');
+      let h6ActivaPdf = false, h6RachaPdf = '', h6ProximoPdf = '';
+      if (ultimos6Pdf.length === 6) {
+        if (ultimos6Pdf.every(e => e.color === 'red')) { h6ActivaPdf = true; h6RachaPdf = 'ROJO'; h6ProximoPdf = 'NEGRO'; }
+        if (ultimos6Pdf.every(e => e.color === 'black')) { h6ActivaPdf = true; h6RachaPdf = 'NEGRO'; h6ProximoPdf = 'ROJO'; }
+      }
+      if (h6ActivaPdf) hipLines.push(`H6 · Últimos 6 números fueron ${h6RachaPdf} → próximo potencial: ${h6ProximoPdf} → ⚡ ACTIVA`);
+
+      // H7 — Atracción de Familia
+      const familiaP = [0, 1, 9];
+      const enMMp = familiaP.filter(d => result && result.active && result.bodega && result.bodega[d] !== null);
+      if (enMMp.length < 3) {
+        const freqC5p = new Array(10).fill(0);
+        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC5p[d]++; }); });
+        const sortedC5p = freqC5p.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
+        const c5coordsP = sortedC5p.length >= 5 ? [sortedC5p[4].d] : [];
+        const atraidasP = familiaP.filter(d => !enMMp.includes(d) && c5coordsP.includes(d));
+        const nvmSet = result && result.bodega ? new Set(result.bodega.map((v,d) => v !== null ? d : null).filter(d => d !== null)) : new Set();
+        const libresP = atraidasP.filter(d => !nvmSet.has(d));
+        const fueraFamiliaP = result && result.active && result.bodega
+          ? result.bodega.map((v, d) => v !== null && !familiaP.includes(d) ? d : null).filter(d => d !== null)
+          : [];
+        if (enMMp.length >= 1 && libresP.length > 0)
+          hipLines.push(`H7 · Atracción de Familia 0·1·9: 2 en MM y tercera en C5 sin bloqueo → ⚡ ACTIVA · En MM: #${enMMp.join(' #')} · Atraída: #${libresP.join(' #')}${fueraFamiliaP.length > 0 ? ` · Lib: #${fueraFamiliaP.join(' #')}` : ''}`);
       }
 
-      // H6 — 6 números mismo color → próximo color contrario
-      {
-        const ultimos6Pdf = history.slice(0, 6).filter(e => e.color === 'red' || e.color === 'black');
-        let h6ActivaPdf = false, h6RachaPdf = '', h6ProximoPdf = '';
-        if (ultimos6Pdf.length === 6) {
-          const todosRojosPdf = ultimos6Pdf.every(e => e.color === 'red');
-          const todosNegrosPdf = ultimos6Pdf.every(e => e.color === 'black');
-          if (todosRojosPdf) { h6ActivaPdf = true; h6RachaPdf = 'ROJO'; h6ProximoPdf = 'NEGRO'; }
-          if (todosNegrosPdf) { h6ActivaPdf = true; h6RachaPdf = 'NEGRO'; h6ProximoPdf = 'ROJO'; }
-        }
-        html += `<div style="${BLK_H}">`;
-        html += `<div style="${TTL_H}">Hipótesis #6</div>`;
-        html += `<div style="${TXT_H}">${h6ActivaPdf ? `Los últimos 6 números cargados fueron ${h6RachaPdf} → próximo potencial: ${h6ProximoPdf}` : 'Sin racha de 6 números del mismo color actualmente.'}</div>`;
-        if (h6ActivaPdf) html += `<div style="${ACT_H}">⚡ ACTIVA · Los últimos 6 fueron ${h6RachaPdf} · Próximo potencial: ${h6ProximoPdf}</div>`;
+      if (hipLines.length > 0) {
+        html += `<div style="margin-top:2mm; border-top:0.3mm solid #7c83fd; padding-top:1mm;">`;
+        html += `<div style="font-size:7px; letter-spacing:0.08em; text-transform:uppercase; color:#7c83fd; font-weight:700; margin-bottom:1mm;">🧠 Hipótesis activas</div>`;
+        hipLines.forEach(line => {
+          html += `<div style="${LN}">${line}</div>`;
+        });
         html += `</div>`;
-
-        // Atracción de Familia PDF
-        {
-          const familiaP = [0, 1, 9];
-          const enMMp = familiaP.filter(d => result && result.active && result.bodega && result.bodega[d] !== null);
-          // Calcular C5 coords localmente desde history
-          const freqC5p = new Array(10).fill(0);
-          history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC5p[d]++; }); });
-          const sortedC5p = freqC5p.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
-          const c5coordsP = sortedC5p.length >= 5 ? [sortedC5p[4].d] : [];
-          const atraidasP = familiaP.filter(d => !enMMp.includes(d) && c5coordsP.includes(d));
-          const nvmSet = result && result.bodega ? new Set(result.bodega.map((v,d) => v !== null ? d : null).filter(d => d !== null)) : new Set();
-          const libresP = atraidasP.filter(d => !nvmSet.has(d));
-          const bloqueasP = atraidasP.filter(d => nvmSet.has(d));
-          const hAfP = enMMp.length >= 1 && libresP.length > 0;
-          const fueraFamiliaP = result && result.active && result.bodega
-            ? result.bodega.map((v, d) => v !== null && !familiaP.includes(d) ? d : null).filter(d => d !== null)
-            : [];
-          html += `<div style="${BLK_H}">`;
-          html += `<div style="${TTL_H}">Atracción de Familia</div>`;
-          html += `<div style="${TXT_H}">Familia 0·1·9: si 2 en MM y la tercera en C5 sin bloqueo → potencial atracción.</div>`;
-          if (hAfP) html += `<div style="${ACT_H}">⚡ ACTIVA · MM: #${enMMp.join(' #')} · Atraída: #${libresP.join(' #')}${fueraFamiliaP.length > 0 ? ` · Lib: #${fueraFamiliaP.join(' #')}` : ''}</div>`;
-          else if (bloqueasP.length > 0) html += `<div style="font-size:8px; color:#cc0000;">⚠️ Bloqueada: #${bloqueasP.join(' #')}</div>`;
-          html += `</div>`;
-        }
       }
-
-      html += `</div>`;
     }
 
     // ── Fila 4: Jugada Columnas 5 y 10 Coordenadas Iguales ──
@@ -3166,14 +3128,22 @@
     // dedicada "ALERTAS EN TEXTO = PELIGROS" (ver renderAlertasPeligros).
     renderAlertasPeligros(result);
 
+    // Renderizar hipótesis siempre desde aquí también
+    renderHipotesis(result, manoAlertasActivas, history, null, null);
+
     quedadasPanel.style.display = "block";
   }
 
   function renderHipotesis(quedadas, manoAlertas, history, ordered, noVanMachoSet) {
-    if (!quedadas || !quedadas.active) {
-      hipotesisContent.innerHTML = `<div style="font-size:0.8rem; color:var(--muted);">Cargando datos...</div>`;
-      return;
+    if (!hipotesisContent) return;
+    // Si ordered no viene, calcularlo desde history
+    if (!ordered || ordered.length === 0) {
+      const freq12 = new Array(10).fill(0);
+      history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freq12[d]++; }); });
+      ordered = freq12.map((f, d) => ({ d, f, coords: f > 0 ? [d] : [] })).sort((a, b) => b.f - a.f);
     }
+    if (!noVanMachoSet) noVanMachoSet = new Set();
+    const activo = quedadas && quedadas.active;
     let html = "";
 
     // Hipótesis #1 — siempre visible
@@ -3200,7 +3170,7 @@
       const ultimaCoords = history[0].coords;
       const coord5EnUltima = ultimaCoords.includes(5);
       const coord5EnC1 = Array.isArray(ordered[0].coords) && ordered[0].coords.includes(5);
-      if (coord5EnUltima && coord5EnC1 && quedadas && quedadas.active && quedadas.bodega) {
+      if (coord5EnUltima && coord5EnC1 && activo && quedadas.bodega) {
         // Coordenadas bloqueadas: 5/5(5), 4/5(4), 0/9(0 y 9) — solo las que están en MM
         const coordsBloqueadas = [5, 4, 0, 9];
         h3BloqueadasEnMM = coordsBloqueadas.filter(d => quedadas.bodega[d] !== null);
@@ -3257,24 +3227,25 @@
     // Hipótesis — Atracción de Familia (0, 1, 9)
     {
       const familia = [0, 1, 9];
-      const enMM = familia.filter(d => quedadas.active && quedadas.bodega && quedadas.bodega[d] !== null);
-      const enC5 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const enMM = familia.filter(d => activo && quedadas.bodega && quedadas.bodega[d] !== null);
+      const todasEnMM = enMM.length === 3;
+
+      const enC5 = (!todasEnMM && ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
       const atraidas = familia.filter(d => !enMM.includes(d) && enC5.includes(d));
       const bloqueadas = atraidas.filter(d => noVanMachoSet && noVanMachoSet.has(d));
       const libres = atraidas.filter(d => !noVanMachoSet || !noVanMachoSet.has(d));
-      const hAfActiva = enMM.length >= 1 && libres.length > 0;
+      const hAfActiva = !todasEnMM && enMM.length >= 1 && libres.length > 0;
 
-      // Parte 2: coords fuera de familia que están en MM → potenciales a liberar
-      const fueraFamilia = quedadas.active && quedadas.bodega
+      const fueraFamilia = activo && quedadas.bodega
         ? quedadas.bodega.map((v, d) => v !== null && !familia.includes(d) ? d : null).filter(d => d !== null)
         : [];
 
       html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
-        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis — Atracción de Familia</div>
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #7 — Atracción de Familia</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Familia: coords 0 · 1 · 9. Si 2 están en MM y la tercera está en C5 sin bloqueo → potencial atracción a MM. Las demás coords en MM son potenciales a liberar.</div>
         ${hAfActiva
           ? `<div style="color:red; font-weight:700;">⚡ ACTIVA · En MM: #${enMM.join(' #')} · Atraída a MM: #${libres.join(' #')}${fueraFamilia.length > 0 ? ` · Potenciales a liberar: #${fueraFamilia.join(' #')}` : ''}</div>`
-          : `${bloqueadas.length > 0 ? `<div style="color:#ff8a80; font-size:0.8rem;">⚠️ Bloqueada: coord #${bloqueadas.join(' #')} no puede subir a MM</div>` : ''}`
+          : `${!todasEnMM && bloqueadas.length > 0 ? `<div style="color:#ff8a80; font-size:0.8rem;">⚠️ Bloqueada: coord #${bloqueadas.join(' #')} no puede subir a MM</div>` : ''}`
         }
       </div>`;
     }
@@ -4209,6 +4180,8 @@
 
 
 <!-- ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL -->
+<!-- ALFA777GLOBAL · Jose Alex N-R · Director de Desarrollo Tecnológico · Global Systems Technology J.A.R · Colombia 2025 · Risaralda · Pereira · Dosquebradas · ALFA Proyecto Estadístico · Herramienta educativa contra la ludopatía · Presentado ante fundaciones de apoyo a personas con ludopatía y alcoholismo en Medellín Colombia · Planificado para presentación en 16 países · Ningún sistema puede ganar consistentemente a la ruleta a largo plazo · Cada giro es estadísticamente independiente del anterior · La falacia del jugador es un error cognitivo · Este software demuestra con trazabilidad real que ningún algoritmo por sofisticado que sea puede predecir o controlar los resultados de una ruleta · ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL -->
+<!-- v1.5.1 · A217 · N218 · ALFA777GLOBAL · Proyecto educativo y terapéutico · Todos los derechos reservados Jose Alex N-R · colombiacomercial1@gmail.com · 301 655 0121 · Global Systems Technology J.A.R · Automatización · Inteligencia Artificial · Sistemas de Reservas · SEO Orgánico · Autogestión CMS · Soluciones para comercios colombianos · ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL ALFA777GLOBAL -->
 </body>
 </html>
 
@@ -4217,3 +4190,4 @@
  
  
  
+<!-- ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Systems Technology J.A.R · Colombia 2025 · Proyecto educativo contra la ludopatía · ALFA777GLOBAL · Jose Alex N-R · Global Syst -->
