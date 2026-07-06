@@ -1550,6 +1550,39 @@
       }
     }
 
+    // ── H5: 2 coords mayor tendencia últimos 5 números → Potenciales ──
+    {
+      const ventana5 = history.slice(0, 5).filter(e => Array.isArray(e.coords));
+      const freqV5 = new Array(10).fill(0);
+      ventana5.forEach(e => e.coords.forEach(d => { if (d >= 0 && d <= 9) freqV5[d]++; }));
+      const top2H5 = freqV5.map((f, d) => ({ d, f })).filter(x => x.f > 0).sort((a, b) => b.f - a.f).slice(0, 2);
+      top2H5.forEach(({ d, f }) => {
+        for (let h = 0; h <= 9; h++) {
+          if (h === d) continue;
+          const suma = d + h;
+          if (suma !== 9 && suma !== 10) continue;
+          const coord1 = Math.min(d, h), coord2 = Math.max(d, h);
+          if (potencialesCoords.some(r => r.coord1 === coord1 && r.coord2 === coord2)) continue;
+          const numeros = cnCoordsToNumbers(coord1, coord2, suma);
+          if (numeros.length > 0) potencialesAgregarOAnotar(coord1, coord2, suma === 10 ? "Largo" : "Corto", numeros, `H5 · Coord #${d}(x${f}) últimos 5 giros`, "H5 · Tendencia últimos 5");
+        }
+        // Caso especial coord 5 → par 5/5
+        if (d === 5 && !potencialesCoords.some(r => r.coord1 === 5 && r.coord2 === 5)) {
+          const nums55 = cnCoordsToNumbers(5, 5, 10);
+          if (nums55.length > 0) potencialesAgregarOAnotar(5, 5, "Largo", nums55, `H5 · Coord #5(x${f}) par 5/5`, "H5 · Tendencia últimos 5");
+        }
+        // Caso especial coord 4 → pares 4/5, 4/6 y 5/5
+        if (d === 4) {
+          [[4,5,9,"Corto"],[4,6,10,"Largo"],[5,5,10,"Largo"]].forEach(([c1,c2,suma,seg]) => {
+            if (!potencialesCoords.some(r => r.coord1 === c1 && r.coord2 === c2)) {
+              const nums = cnCoordsToNumbers(c1, c2, suma);
+              if (nums.length > 0) potencialesAgregarOAnotar(c1, c2, seg, nums, `H5 · Coord #4(x${f}) par ${c1}/${c2}`, "H5 · Tendencia últimos 5");
+            }
+          });
+        }
+      });
+    }
+
     // ── Ord Rep + Zona Caliente C1-C5 → Potenciales ──
     if (ordered.length >= 5) {
       const zonaC1C5 = ordered.slice(0, 5);
@@ -2690,6 +2723,17 @@
       if (rLibH8Pdf === 4)
         hipLines.push(`Hipótesis #8 · No Liberado Potencial MM · Cuando Liberado MM llega a +4 es muy potencial que MM no libere en el próximo giro. Busca las coords más débiles entre C1–C5 → son potenciales si MM no libera. → ⚡ ACTIVA · Liberado MM +${rLibH8Pdf} · Busca coords más débiles entre C1–C5`);
 
+      // H10 — C5 Potencial Liberación
+      {
+        const freqC510 = new Array(10).fill(0);
+        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC510[d]++; }); });
+        const sortedC510 = freqC510.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
+        const c5coords10pdf = sortedC510.length >= 5 ? [sortedC510[4].d, sortedC510[5]?.d].filter(d => d !== undefined) : [];
+        const rLib10pdf = result && result.active ? result.rachaLiberado : null;
+        if (c5coords10pdf.length === 2 && rLib10pdf === -3)
+          hipLines.push(`Hipótesis #10 · C5 Potencial Liberación · Cuando C5 tiene 2 coords y Liberado MM está en -3 → coords de C5 son potenciales a liberarse. → ⚡ ACTIVA · C5: #${c5coords10pdf.join(' #')} · Liberado MM -3`);
+      }
+
       // H9 — 5/5 bloqueado para subir a MM
       {
         const familia9p = [0, 1, 9];
@@ -3306,6 +3350,18 @@
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #9 — 5/5 Bloqueado para subir a MM · Potencial libera 0/9 ó 1/9</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando 5/5 está en C5 bloqueado (no puede subir a MM) y hay Bloque Vacío, y MM tiene coords 0·1·9 en bodega, y Liberado MM no está en -3 ni -4 → potencial liberación 0/9 ó 1/9.</div>
         ${h9Activa ? `<div style="color:red;">⚡ ACTIVA · 5/5 bloqueado en C5 · Potencial libera: ${paresPotenciales.join(' ó ')}</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #10 — C5 Potencial Liberación
+    {
+      const c5coords10 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const rLib10 = activo && quedadas ? quedadas.rachaLiberado : null;
+      const h10Activa = c5coords10.length === 2 && rLib10 === -3;
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #10 — C5 Potencial Liberación</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando C5 tiene 2 coordenadas y Liberado MM está en -3 → las coords de C5 son potenciales a liberarse.</div>
+        ${h10Activa ? `<div style="color:red;">⚡ ACTIVA · C5: #${c5coords10.join(' #')} · Liberado MM -3 · Potencial liberación</div>` : ''}
       </div>`;
     }
 
