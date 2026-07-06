@@ -2615,18 +2615,6 @@
       html += '</div>';
       html += '</div>';
 
-      // Hipótesis #5 — tendencia últimos 3-5 números (dentro de Orden Repetición)
-      {
-        const ventanaOrdPdf = history.slice(0, 5).filter(e => Array.isArray(e.coords));
-        const freqOrdPdf = new Array(10).fill(0);
-        ventanaOrdPdf.forEach(e => e.coords.forEach(d => { if (d >= 0 && d <= 9) freqOrdPdf[d]++; }));
-        const top2OrdPdf = freqOrdPdf.map((f, d) => ({ d, f })).filter(x => x.f > 0).sort((a, b) => b.f - a.f).slice(0, 2);
-        if (top2OrdPdf.length >= 2) {
-          html += `<div style="margin-top:1mm; font-size:8px; color:#000; border-left:2px solid #7c83fd; padding-left:2mm;">`;
-          html += `<span style="font-weight:700; color:#7c83fd;">H5 · Tendencia:</span> Coord #${top2OrdPdf[0].d}(x${top2OrdPdf[0].f}) · Coord #${top2OrdPdf[1].d}(x${top2OrdPdf[1].f})`;
-          html += `</div>`;
-        }
-      }
     }
 
     // ── Hipótesis ──
@@ -2701,6 +2689,29 @@
       const rLibH8Pdf = result && result.active ? result.rachaLiberado : null;
       if (rLibH8Pdf === 4)
         hipLines.push(`Hipótesis #8 · No Liberado Potencial MM · Cuando Liberado MM llega a +4 es muy potencial que MM no libere en el próximo giro. Busca las coords más débiles entre C1–C5 → son potenciales si MM no libera. → ⚡ ACTIVA · Liberado MM +${rLibH8Pdf} · Busca coords más débiles entre C1–C5`);
+
+      // H9 — 5/5 bloqueado para subir a MM
+      {
+        const familia9p = [0, 1, 9];
+        const freqC59 = new Array(10).fill(0);
+        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC59[d]++; }); });
+        const sortedC59 = freqC59.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
+        const c5p = sortedC59.length >= 5 ? sortedC59[4] : null;
+        const par55EnC5p = c5p && c5p.d === 5;
+        const nvmSet9 = result && result.bodega ? new Set(result.bodega.map((v,d) => v !== null ? d : null).filter(d => d !== null)) : new Set();
+        const par55Bloq = nvmSet9.has(5);
+        const bloqVacio = nvmSet9.size >= 10;
+        const enMM9p = familia9p.filter(d => result && result.active && result.bodega && result.bodega[d] !== null);
+        const rLib9p = result && result.active ? result.rachaLiberado : null;
+        const libNoBlq = rLib9p !== -3 && rLib9p !== -4;
+        if (par55EnC5p && par55Bloq && bloqVacio && enMM9p.length >= 2 && libNoBlq) {
+          const pares9p = [];
+          if (enMM9p.includes(0) && enMM9p.includes(9)) pares9p.push('0/9');
+          if (enMM9p.includes(1) && enMM9p.includes(9)) pares9p.push('1/9');
+          if (enMM9p.includes(0) && enMM9p.includes(1)) pares9p.push('0/1');
+          hipLines.push(`Hipótesis #9 · 5/5 bloqueado para subir a MM · Cuando 5/5 en C5 está bloqueado y hay Bloque Vacío y MM tiene 0·1·9 y Liberado no en -3/-4 → potencial libera ${pares9p.join(' ó ')}. → ⚡ ACTIVA · 5/5 bloqueado · Potencial libera: ${pares9p.join(' ó ')}`);
+        }
+      }
 
       if (hipLines.length > 0) {
         html += `<div style="margin-top:2mm; border-top:0.3mm solid #7c83fd; padding-top:1mm;">`;
@@ -3270,6 +3281,31 @@
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #8 — No Liberado Potencial MM</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando Liberado MM llega a +4 es muy potencial que el próximo giro MM no libere ninguna coordenada. Busca las coords más débiles entre C1–C5 → son potenciales si MM no libera.</div>
         ${h8Activa ? `<div style="color:red;">⚡ ACTIVA · Liberado MM +${rLibH8} · MM probablemente no libera en el próximo giro · Busca coords más débiles entre C1–C5</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #9 — 5/5 bloqueado para subir a MM · Potencial libera 0/9 ó 1/9
+    {
+      const familia9 = [0, 1, 9];
+      const c5coords9 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const par55EnC5 = c5coords9[0] === 5 && c5coords9[1] === 5;
+      const par55Bloqueado = noVanMachoSet && noVanMachoSet.has(5);
+      const bloqueVacio = noVanMachoSet && noVanMachoSet.size >= 10;
+      const enMM9 = familia9.filter(d => activo && quedadas.bodega && quedadas.bodega[d] !== null);
+      const rLib9 = quedadas && quedadas.rachaLiberado;
+      const liberadoNoBloquea = rLib9 !== -3 && rLib9 !== -4;
+      const h9Activa = par55EnC5 && par55Bloqueado && bloqueVacio && enMM9.length >= 2 && liberadoNoBloquea;
+
+      // Determinar pares potenciales según qué coords de familia están en MM
+      let paresPotenciales = [];
+      if (enMM9.includes(0) && enMM9.includes(9)) paresPotenciales.push('0/9');
+      if (enMM9.includes(1) && enMM9.includes(9)) paresPotenciales.push('1/9');
+      if (enMM9.includes(0) && enMM9.includes(1)) paresPotenciales.push('0/1');
+
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #9 — 5/5 Bloqueado para subir a MM · Potencial libera 0/9 ó 1/9</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando 5/5 está en C5 bloqueado (no puede subir a MM) y hay Bloque Vacío, y MM tiene coords 0·1·9 en bodega, y Liberado MM no está en -3 ni -4 → potencial liberación 0/9 ó 1/9.</div>
+        ${h9Activa ? `<div style="color:red;">⚡ ACTIVA · 5/5 bloqueado en C5 · Potencial libera: ${paresPotenciales.join(' ó ')}</div>` : ''}
       </div>`;
     }
 
