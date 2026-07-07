@@ -2625,8 +2625,8 @@
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
         html += `<div>${noVanTexto2}</div>`;
-        // Rachas Bloque Vacío y Sin Bloqueo
-        if (result && result.active) {
+        // Rachas Bloque Vacío y Sin Bloqueo — solo mostrar si tienen conteo
+        if (result && result.active && (result.rachaBloqueoVacio !== 0 || result.rachaSinBloqueo !== 0)) {
           const rBVpdf2 = result.rachaBloqueoVacio;
           const rSBpdf2 = result.rachaSinBloqueo;
           html += `<div style="margin-top:1mm; font-size:7.5px; color:#000;">`;
@@ -2848,6 +2848,42 @@
       const rBVpdf = result && result.active ? result.rachaBloqueoVacio : null;
       if (rBVpdf !== null && rBVpdf >= 2)
         hipLines.push(`Hipótesis #14 · Bloque Vacío +2 · Bloque Vacío ${rBVpdf} jugadas consecutivas → MM potencial libera dual o individual. → ⚡ ACTIVA · Bloque Vacío ${rBVpdf} consecutivos`);
+
+      // H15 — Coord en las 3 zonas · Potencial liberación
+      {
+        const freq15 = new Array(10).fill(0);
+        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freq15[d]++; }); });
+        const ordered15 = freq15.map((f, d) => ({ d, f, coords: f > 0 ? [d] : [] })).sort((a, b) => b.f - a.f);
+        const zC15 = ordered15.slice(0, 5);
+        const zF15 = ordered15.slice(5, 9);
+        const zCola15 = ordered15.slice(9, 12);
+        const coords15 = [];
+        for (let d = 0; d <= 9; d++) {
+          if (freq15[d] <= 4) continue;
+          const enC = zC15.some(e => e.d === d);
+          const enF = zF15.some(e => e.d === d);
+          const enCola = zCola15.some(e => e.d === d);
+          if (enC && enF && enCola) coords15.push({ d, f: freq15[d] });
+        }
+        if (coords15.length > 0)
+          hipLines.push(`Hipótesis #15 · Coord en las 3 zonas · Potencial liberación · Coord más de 4 veces en Orden Rep y presente en C1–C5, C6–C9 y C10–C12. → ⚡ ACTIVA · ${coords15.map(x => `#${x.d}(x${x.f})`).join(' · ')}`);
+      }
+
+      // H16 — 0/9 en C5 · 5/5 en C10 · 5 en MM
+      {
+        const freq16 = new Array(10).fill(0);
+        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freq16[d]++; }); });
+        const ord16 = freq16.map((f, d) => ({ d, f, coords: f > 0 ? [d] : [] })).sort((a, b) => b.f - a.f);
+        const c5_16 = ord16.length >= 5 ? ord16[4].d : null;
+        const c5prev_16 = ord16.length >= 5 ? ord16.slice(0,5).map(x => x.d) : [];
+        const c10_16 = ord16.length >= 10 ? ord16.slice(5,10).map(x => x.d) : [];
+        const enMM5_16 = result && result.active && result.bodega && result.bodega[5] !== null;
+        const enMM9_16 = result && result.active && result.bodega && result.bodega[9] !== null;
+        const casoA16 = c5prev_16.includes(0) && c5prev_16.includes(9) && c10_16.includes(5) && enMM5_16;
+        const casoB16 = c5_16 === 5 && c10_16.includes(0) && c10_16.includes(9) && enMM9_16;
+        if (casoA16 || casoB16)
+          hipLines.push(`Hipótesis #16 · 0/9 en C5 · 5/5 en C10 · 5 en MM → Libera una de las mismas en próximo giro. → ⚡ ACTIVA · ${casoA16 ? 'Caso A · 0/9 en C5 · 5/5 en C10 · #5 en MM' : 'Caso B · 5/5 en C5 · 0/9 en C10 · #9 en MM'}`);
+      }
 
       // H9 — 5/5 bloqueado para subir a MM
       {
@@ -3427,7 +3463,7 @@
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Familia: coords 0 · 1 · 9. Si 2 están en MM y la tercera está en C5 sin bloqueo → potencial atracción a MM. Las demás coords en MM son potenciales a liberar.</div>
         ${hAfActiva
           ? `<div style="color:red;">⚡ ACTIVA · En MM: #${enMM.join(' #')} · Atraída a MM: #${libres.join(' #')}${fueraFamilia.length > 0 ? ` · Potenciales a liberar: #${fueraFamilia.join(' #')}` : ''}</div>`
-          : `${!todasEnMM && bloqueadas.length > 0 ? `<div style="color:#ff8a80; font-size:0.8rem;">⚠️ Bloqueada: coord #${bloqueadas.join(' #')} no puede subir a MM</div>` : ''}`
+          : `${!todasEnMM && atraidas.length > 0 && bloqueadas.length > 0 ? `<div style="color:red; font-size:0.8rem;">⚠️ Bloqueada: coord #${bloqueadas.join(' #')} no puede subir a MM</div>` : ''}`
         }
       </div>`;
     }
@@ -3537,6 +3573,54 @@
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #14 — Bloque Vacío +2</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando "Coordenadas que no van a MM" da Bloque Vacío 2 jugadas consecutivas → es muy potencial que MM libere una coordenada dual o individual.</div>
         ${h14Activa ? `<div style="color:red;">⚡ ACTIVA · Bloque Vacío ${rBV} jugadas consecutivas · MM potencial libera dual o individual</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #15 — Coord en las 3 zonas · Potencial liberación
+    {
+      const zonaC15 = ordered && ordered.length >= 5 ? ordered.slice(0, 5) : [];
+      const zonaF15 = ordered && ordered.length >= 9 ? ordered.slice(5, 9) : [];
+      const zonaCola15 = ordered && ordered.length >= 12 ? ordered.slice(9, 12) : [];
+      // Calcular freq localmente
+      const freq15h = new Array(10).fill(0);
+      history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freq15h[d]++; }); });
+      const coordsH15 = [];
+      for (let d = 0; d <= 9; d++) {
+        if (freq15h[d] <= 4) continue;
+        const enC15 = zonaC15.some(e => Array.isArray(e.coords) && e.coords.includes(d));
+        const enF15 = zonaF15.some(e => Array.isArray(e.coords) && e.coords.includes(d));
+        const enCola15 = zonaCola15.some(e => Array.isArray(e.coords) && e.coords.includes(d));
+        if (enC15 && enF15 && enCola15) coordsH15.push({ d, f: freq15h[d] });
+      }
+      const h15Activa = coordsH15.length > 0;
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #15 — Coord en las 3 zonas · Potencial liberación</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando una coord aparece más de 4 veces en Orden Repetición y está en las 3 zonas (C1–C5 caliente · C6–C9 fría · C10–C12 cola) → muy potencial que se libere en el próximo giro.</div>
+        ${h15Activa ? `<div style="color:red;">⚡ ACTIVA · Coords en 3 zonas: ${coordsH15.map(x => `#${x.d}(x${x.f})`).join(' · ')}</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #16 — 0/9 en C5 · 5/5 en C10 · 5 en MM → Libera una de las mismas en próximo giro
+    {
+      const c5coords16 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const c10coords16 = (ordered && ordered.length >= 10 && Array.isArray(ordered[9].coords)) ? ordered[9].coords : [];
+      const enMM5 = activo && quedadas && quedadas.bodega && quedadas.bodega[5] !== null;
+      const enMM9 = activo && quedadas && quedadas.bodega && quedadas.bodega[9] !== null;
+
+      // Caso A: 0/9 en C5 · 5/5 en C10 · coord 5 en MM
+      const casoA = c5coords16.includes(0) && c5coords16.includes(9) &&
+                    c10coords16.includes(5) && enMM5;
+      // Caso B inverso: 5/5 en C5 · 0/9 en C10 · coord 9 en MM
+      const casoB = c5coords16.includes(5) && c5coords16[0] === 5 && c5coords16[1] === 5 &&
+                    c10coords16.includes(0) && c10coords16.includes(9) && enMM9;
+
+      const h16Activa = casoA || casoB;
+      const casoLabel = casoA ? 'Caso A · 0/9 en C5 · 5/5 en C10 · #5 en MM' : 'Caso B · 5/5 en C5 · 0/9 en C10 · #9 en MM';
+
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #16 — 0/9 en C5 · 5/5 en C10 · 5 en MM → Libera una de las mismas en próximo giro</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando 0/9 en C5 · 5/5 en C10 · coord 5 en MM (o inverso: 5/5 en C5 · 0/9 en C10 · coord 9 en MM) → una de esas coords se libera en el próximo giro.</div>
+        ${h16Activa ? `<div style="color:red;">⚡ ACTIVA · ${casoLabel}</div>` : ''}
       </div>`;
     }
 
