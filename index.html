@@ -1855,11 +1855,52 @@
     let noVanHtml = `<label style="display:block;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;">Coordenadas que no van a Módulo Macho</label>`;
     noVanHtml += `<div style="font-size:0.85rem;">${noVanMachoList.length > 0 ? noVanMachoList.join(", ") : "—"}</div>`;
 
-    if (noVanMachoList.length === 10) {
+    // Guardar bloqueVacio en jugada actual usando el valor correcto
+    const bloqueVacioAhora = noVanMachoList.length === 10;
+    if (history.length > 0 && history[0].playNumber !== undefined) {
+      history[0].bloqueVacio = bloqueVacioAhora;
+    }
+
+    // Calcular rachas desde historial
+    {
+      const plays = history.filter(e => e.playNumber !== undefined);
+      let rBV = 0;
+      if (plays.length > 0) {
+        const primero = plays[0].bloqueVacio === true;
+        rBV = primero ? 1 : -1;
+        for (let i = 1; i < Math.min(plays.length, 15); i++) {
+          if ((plays[i].bloqueVacio === true) === primero) rBV += primero ? 1 : -1;
+          else break;
+        }
+      }
+      quedadas.rachaBloqueoVacio = rBV;
+      quedadas.rachaSinBloqueo = -rBV;
+    }
+
+    if (bloqueVacioAhora) {
       noVanHtml += `<div style="margin-top:6px; color:var(--gold);">⚠ Bloque Vacío: el módulo Macho no cargará en el próximo giro. Solo liberará, descansará.</div>`;
     }
 
     reportNoVanMacho.innerHTML = noVanHtml;
+
+    // ── Rachas display: Bloque Vacío y Sin Bloqueo ──
+    {
+      const rBV = quedadas.rachaBloqueoVacio;
+      const rSB = quedadas.rachaSinBloqueo;
+      const bvAlert = rBV >= 2;
+      const sbAlert = rSB >= 2;
+      const rachasHtml = `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <div class="racha-chip ${bvAlert ? 'alert' : ''}">
+          <div class="label">Bloque Vacío</div>
+          <div class="value">${rBV > 0 ? '+' : ''}${rBV}</div>
+        </div>
+        <div class="racha-chip ${sbAlert ? 'alert' : ''}">
+          <div class="label">Sin Bloqueo</div>
+          <div class="value">${rSB > 0 ? '+' : ''}${rSB}</div>
+        </div>
+      </div>`;
+      reportNoVanMacho.innerHTML += rachasHtml;
+    }
 
     // ── Jugada Potencial a Repetición de Coordenadas más Fuertes ──
     // Complemento: dígitos 0-9 que NO están en "Coordenadas que no van
@@ -2299,6 +2340,10 @@
     const rachaLiberado = calcularRacha(eventosLiberado, 15, 15);
     const rachaDescanso = calcularRacha(eventosDescanso, 15, 15);
 
+    // ── Rachas Bloque Vacío y Sin Bloqueo — calculadas en renderReport donde noVanMachoSet es correcto ──
+    const rachaBloqueoVacio = 0;
+    const rachaSinBloqueo = 0;
+
     return {
       active: true,
       bodega,
@@ -2316,6 +2361,8 @@
       rachaCargado,
       rachaLiberado,
       rachaDescanso,
+      rachaBloqueoVacio,
+      rachaSinBloqueo,
       descansoPct: lastDescansoPct,
       alerta5
     };
@@ -2578,6 +2625,15 @@
         html += `<div style="${BLK}">`;
         html += `<div style="${TTL}">Coordenadas que no van a Módulo Macho</div>`;
         html += `<div>${noVanTexto2}</div>`;
+        // Rachas Bloque Vacío y Sin Bloqueo
+        if (result && result.active) {
+          const rBVpdf2 = result.rachaBloqueoVacio;
+          const rSBpdf2 = result.rachaSinBloqueo;
+          html += `<div style="margin-top:1mm; font-size:7.5px; color:#000;">`;
+          html += `<span style="${rBVpdf2 >= 2 ? 'color:red; font-weight:700;' : ''}">Bloque Vacío: ${rBVpdf2 > 0 ? '+' : ''}${rBVpdf2}</span>`;
+          html += `<span style="margin-left:4mm; ${rSBpdf2 >= 2 ? 'color:red; font-weight:700;' : ''}">Sin Bloqueo: ${rSBpdf2 > 0 ? '+' : ''}${rSBpdf2}</span>`;
+          html += `</div>`;
+        }
         html += '</div>';
       }
       html += '</div>';
@@ -2723,15 +2779,27 @@
       if (rLibH8Pdf === 4)
         hipLines.push(`Hipótesis #8 · No Liberado Potencial MM · Cuando Liberado MM llega a +4 es muy potencial que MM no libere en el próximo giro. Busca las coords más débiles entre C1–C5 → son potenciales si MM no libera. → ⚡ ACTIVA · Liberado MM +${rLibH8Pdf} · Busca coords más débiles entre C1–C5`);
 
-      // H10 — C5 Potencial Liberación
+      // H10 — C5 y C10 Potencial Liberación
       {
-        const freqC510 = new Array(10).fill(0);
-        history.slice(0, 12).forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freqC510[d]++; }); });
-        const sortedC510 = freqC510.map((f, d) => ({ d, f })).sort((a, b) => b.f - a.f);
-        const c5coords10pdf = sortedC510.length >= 5 ? [sortedC510[4].d, sortedC510[5]?.d].filter(d => d !== undefined) : [];
+        const last12h10 = history.slice(0, 12);
+        const freq10 = new Array(10).fill(0);
+        last12h10.forEach(e => { if (Array.isArray(e.coords)) e.coords.forEach(d => { if (d >= 0 && d <= 9) freq10[d]++; }); });
+        const ordered10 = freq10.map((f, d) => ({ d, f, coords: f > 0 ? [d] : [] })).sort((a, b) => b.f - a.f);
+        const c5coords10pdf = ordered10.length >= 5 ? ordered10[4].coords : [];
+        const c10coords10pdf = ordered10.length >= 10 ? ordered10[9].coords : [];
+        const nvmSet10 = result && result.bodega ? new Set(
+          Array.from({length: 10}, (_, d) => d).filter(d => {
+            const inBodega = result.bodega[d] !== null;
+            const c1c4Set = new Set();
+            for (let i = 0; i < 4; i++) if (ordered10[i]) c1c4Set.add(ordered10[i].d);
+            return inBodega || c1c4Set.has(d);
+          })
+        ) : new Set();
+        const c5bloq10pdf = c5coords10pdf.filter(d => nvmSet10.has(d));
+        const c10bloq10pdf = c10coords10pdf.filter(d => nvmSet10.has(d));
         const rLib10pdf = result && result.active ? result.rachaLiberado : null;
-        if (c5coords10pdf.length === 2 && rLib10pdf === -3)
-          hipLines.push(`Hipótesis #10 · C5 Potencial Liberación · Cuando C5 tiene 2 coords y Liberado MM está en -3 → coords de C5 son potenciales a liberarse. → ⚡ ACTIVA · C5: #${c5coords10pdf.join(' #')} · Liberado MM -3`);
+        if (c5coords10pdf.length >= 1 && rLib10pdf === -3 && (c5bloq10pdf.length > 0 || c10bloq10pdf.length > 0))
+          hipLines.push(`Hipótesis #10 · C5 Potencial Liberación · Coords bloqueadas en C5/C10 son potenciales a liberarse con Liberado MM -3. → ⚡ ACTIVA${c5bloq10pdf.length > 0 ? ` · C5 bloq: #${c5bloq10pdf.join(' #')}` : ''}${c10bloq10pdf.length > 0 ? ` · C10 bloq: #${c10bloq10pdf.join(' #')}` : ''} · Liberado MM -3`);
       }
 
       // H11 — Bloque Vacío · Liberación Directa MM dual
@@ -2775,6 +2843,11 @@
         if (par55EnC5_13pdf && par55Libre13pdf && familiaEnC1C4pdf.length >= 1)
           hipLines.push(`Hipótesis #13 · 5/5 en C5 libre para subir a MM y Potencial liberación familia 0·1·9 si están en C1 a C4 · → ⚡ ACTIVA · 5/5 libre · Familia en C1–C4: #${familiaEnC1C4pdf.join(' #')}`);
       }
+
+      // H14 — Bloque Vacío +2
+      const rBVpdf = result && result.active ? result.rachaBloqueoVacio : null;
+      if (rBVpdf !== null && rBVpdf >= 2)
+        hipLines.push(`Hipótesis #14 · Bloque Vacío +2 · Bloque Vacío ${rBVpdf} jugadas consecutivas → MM potencial libera dual o individual. → ⚡ ACTIVA · Bloque Vacío ${rBVpdf} consecutivos`);
 
       // H9 — 5/5 bloqueado para subir a MM
       {
@@ -3395,15 +3468,19 @@
       </div>`;
     }
 
-    // Hipótesis #10 — C5 Potencial Liberación
+    // Hipótesis #10 — C5 y C10 Potencial Liberación
     {
       const c5coords10 = (ordered && ordered.length >= 5 && Array.isArray(ordered[4].coords)) ? ordered[4].coords : [];
+      const c10coords10 = (ordered && ordered.length >= 10 && Array.isArray(ordered[9].coords)) ? ordered[9].coords : [];
       const rLib10 = activo && quedadas ? quedadas.rachaLiberado : null;
-      const h10Activa = c5coords10.length === 2 && rLib10 === -3;
+      // Solo las bloqueadas para subir a MM son potenciales a liberarse
+      const c5bloq10 = c5coords10.filter(d => noVanMachoSet && noVanMachoSet.has(d));
+      const c10bloq10 = c10coords10.filter(d => noVanMachoSet && noVanMachoSet.has(d));
+      const h10Activa = c5coords10.length === 2 && rLib10 === -3 && (c5bloq10.length > 0 || c10bloq10.length > 0);
       html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #10 — C5 Potencial Liberación</div>
-        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando C5 tiene 2 coordenadas y Liberado MM está en -3 → las coords de C5 son potenciales a liberarse.</div>
-        ${h10Activa ? `<div style="color:red;">⚡ ACTIVA · C5: #${c5coords10.join(' #')} · Liberado MM -3 · Potencial liberación</div>` : ''}
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando C5 tiene 2 coords, Liberado MM está en -3 y hay coords bloqueadas para subir a MM en C5 o C10 → esas coords bloqueadas son potenciales a liberarse.</div>
+        ${h10Activa ? `<div style="color:red;">⚡ ACTIVA${c5bloq10.length > 0 ? ` · C5 bloq: #${c5bloq10.join(' #')}` : ''}${c10bloq10.length > 0 ? ` · C10 bloq: #${c10bloq10.join(' #')}` : ''} · Liberado MM -3 · Potencial liberación</div>` : ''}
       </div>`;
     }
 
@@ -3449,6 +3526,17 @@
         <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #13 — 5/5 en C5 libre · para subir a MM y Potencial liberación familia 0·1·9 si están en C1 a C4</div>
         <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando 5/5 está en C5 sin bloqueo (puede subir a MM) y la familia 0·1·9 tiene coords en C1–C4 → potencial que 5/5 suba a MM y libere 1 o 2 coords de la familia.</div>
         ${h13Activa ? `<div style="color:red;">⚡ ACTIVA · 5/5 libre en C5 · Familia en C1–C4: #${familiaEnC1C4.join(' #')} · Potencial liberación familia</div>` : ''}
+      </div>`;
+    }
+
+    // Hipótesis #14 — Bloque Vacío +2
+    {
+      const rBV = activo && quedadas ? quedadas.rachaBloqueoVacio : null;
+      const h14Activa = rBV !== null && rBV >= 2;
+      html += `<div style="margin-bottom:8px; padding:8px; border-left:3px solid #7c83fd; background:#1a1d23;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:#7c83fd; margin-bottom:4px;">Hipótesis #14 — Bloque Vacío +2</div>
+        <div style="color:#ffffff; font-size:0.8rem; margin-bottom:4px;">Cuando "Coordenadas que no van a MM" da Bloque Vacío 2 jugadas consecutivas → es muy potencial que MM libere una coordenada dual o individual.</div>
+        ${h14Activa ? `<div style="color:red;">⚡ ACTIVA · Bloque Vacío ${rBV} jugadas consecutivas · MM potencial libera dual o individual</div>` : ''}
       </div>`;
     }
 
